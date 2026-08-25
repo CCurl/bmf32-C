@@ -18,7 +18,7 @@ A minimal bare-metal x86 kernel written in pure C and booted under QEMU. It incl
 ## Architecture
 
 ```text
-block-10.fth    - translates boot.f -> boot.h using fwc
+block-01.fth    - translates boot.f -> boot.h using fwc
 boot.f          - Forth source code for base forth system
 dwc-vm.c        - Forth-style VM implementation
 dwc-vm.h        - VM interface and memory layout declarations
