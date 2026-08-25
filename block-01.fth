@@ -17,8 +17,9 @@ cell var in cell var out
 : write-out out @ ->file src y!
     ." #define DWC_SRC " '"' emit
     begin
-        c@y+ x! x@
-        if0 '"' emit cr exit then write-char
+        c@y+ x!
+        x@ if0 '"' emit cr exit then
+        write-char
     again ;
 : failed ." Forth source translation failed" cr ;
 : success ." Forth source translation success" cr ;
