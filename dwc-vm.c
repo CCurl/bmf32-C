@@ -1,9 +1,10 @@
 // A Tachyon inspired system, MIT license, (c) 2026 Chris Curl
 #include "dwc-vm.h"
 
-#define X1(op, name, theCode) op,
-#define X2(op, name, theCode) case op: theCode goto next;
-#define X3(op, name, theCode) { name, op },
+#define X1(op, name, code)   op,
+#define X2(op, name, code)   case op: code goto next;
+#define X3(op, name, code)   { name, op },
+#define BCASE                 break; case
 
 #define PRIMS(X) \
 	X(EXIT,   "exit",     pc = (ucell)rpop(); if (pc==0) { return; } ) \
@@ -14,6 +15,7 @@
 	X(NJMPZ,  "",         if (TOS==0) { pc = code[pc]; } else { pc++; } ) \
 	X(NJMPNZ, "",         if (TOS) { pc = code[pc]; } else { pc++; } ) \
 	X(ZTYPE,  "ztype",    zType((const char*)pop()); ) \
+	X(FTYPE,  "ftype",    fType((char *)pop()); ) \
 	X(DUP,    "dup",      push(TOS); ) \
 	X(DROP,   "drop",     pop(); ) \
 	X(SWAP,   "swap",     t = TOS; TOS = NOS; NOS = t; ) \
@@ -66,7 +68,6 @@
 	X(MOVE,   "cmove",    t = pop(); n = pop(); memmove((void*)n, (void*)pop(), t); ) \
 	X(SLEN,   "s-len",    TOS = strlen((char*)TOS); ) \
 	X(NWB,    ".nwb",     t=pop(); n=pop(); iToA(pop(), t, n); ) \
-	X(OP60,   "op60",     /* free */ ) \
 	X(OP61,   "op61",     /* free */ ) \
 	X(OP62,   "op62",     /* free */ ) \
 	X(LASTOP, "see",      doSee(); )
@@ -191,6 +192,36 @@ void doSee() {
 			BCASE NJMPNZ: zTypeStrNum("njmpnz ", x, 10, 4); i++; break;
 			default: x = (cell)nameByXT(op);
 				zType((char*)x);
+		}
+	}
+}
+
+void fType(char *str) {
+	while (*str) {
+		char c = *(str++);
+		if (c== '\\') {
+			c = *(str++);
+			switch (c) {
+				BCASE 'n': emit('\n');
+				BCASE 'r': emit('\r');
+				BCASE 't': emit('\t');
+			default:
+				emit(c);
+			}
+		} else if (c== '%') {
+			c = *(str++);
+			switch (c) {
+				case  'b': iToA(pop(), 2, 0);
+				BCASE 'd': iToA(pop(), 10, 0);
+				BCASE 'i': iToA(pop(), base, 0);
+				BCASE 'q': emit('"');
+				BCASE 's': zType((char *)pop());
+				BCASE 'x': iToA(pop(), 16, 0); break;
+			default:
+				emit(c);
+			}
+		} else {
+			emit(c);
 		}
 	}
 }

@@ -16,6 +16,7 @@
 : (njmpz)  ( --n )  5 ; inline
 : (njmpnz) ( --n )  6 ; inline
 : (ztype)  ( --n )  7 ; inline
+: (ftype)  ( --n )  8 ; inline
 
 : if   (jmpz)   , here 0 , ; immediate
 : -if  (njmpz)  , here 0 , ; immediate
@@ -77,6 +78,7 @@ vars (vh) !
 
 : z" ( str--addr ) (") ; immediate
 : ." ( str-- ) (") compiling? if (ztype) , exit then ztype ; immediate
+: .f" ( str-- ) (") compiling? if (ftype) , exit then ftype ; immediate
 
 ( More core words )
 : [ ( -- ) 0 state ! ; immediate  ( 0 = INTERPRET )
@@ -135,7 +137,7 @@ cell var (buf)
 
 : .word ( de-- ) cell+ 2+ ztype ;
 : words ( -- ) cr +L last x! 0 y! 0 z! begin
-        x@ dict-end < if0 '(' emit z@ . ." words)" -L exit then
+        x@ dict-end < if0 z@ .f" (%d words)" -L exit then
         x@ .word tab z++
         x@ cell+ 1+ c@ 7 > if y++ then
         y@+ 7 > if cr 0 y! then
@@ -168,9 +170,10 @@ cell var t4   cell var t5   cell var t6
 : s-eqn  ( s1 s2 n--f ) +L3 z@ for c@x+ c@y+ = if0 -L 0 unloop exit then next -L 1 ;
 : s-eq   ( s1 s2--f ) dup s-len 1+ s-eqn ;
 
-: .version ( -- ) version <# # # #. # # #. # # #s #> ztype ;
 
 ( test / temp )
 : bm ( mb -- ) mb timer swap for next timer swap - . ;
 
-marker
+: .version ( -- ) version <# # # #. # # #. # # #s #> ztype ;
+: .si ." bmf32-C v" .version .f" \n\nhttps://github.com/CCurl/bmf32-C" ;
+marker .si .f" \n\nHello."

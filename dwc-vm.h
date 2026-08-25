@@ -7,7 +7,7 @@
 
 typedef unsigned int uint;
 
-#define VERSION         20260823
+#define VERSION         20260824
 
 #define LIT_MASK      0x40000000
 #define LIT_BITS      0x3FFFFFFF
@@ -15,7 +15,6 @@ typedef unsigned int uint;
 #define NAME_SZ               26
 #define cell             int32_t
 #define ucell           uint32_t
-#define BCASE           break; case
 
 #define byte             uint8_t
 #define MEM_SZ         20*1024*1024  /* 20MB */

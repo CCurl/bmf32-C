@@ -510,7 +510,7 @@ void vga_putchar(char c) {
         cursor_x = 0;
     } else if (c == '\t') {
         ++cursor_x;
-        while (cursor_x < VGA_COLS && (cursor_x % 8 != 0)) {
+        while (cursor_x < VGA_COLS && (cursor_x % 7 != 0)) {
             ++cursor_x;
         }
     } else {

@@ -19,8 +19,6 @@ void repl() {
 void dwcRun() {
     dwcInit();
     outer(DWC_SRC);
-    outer(".\" Bare Metal Forth v\" .version cr");
-    outer(".\" Hello\" cr");
     while (1) { repl(); }
 }
 
