@@ -72,10 +72,6 @@ void *memmove(void *dest, const void *src, size_t n) {
 
 int key(void) {
     int c = -1;
-    while (c < 0) { c = keyboard_getchar(); }
+    while (c < 0) { c = keyboard_get_char(); }
     return c;
-}
-
-int qKey(void) {
-    return keyboard_has_input() ? 1 : 0;
 }

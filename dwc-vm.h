@@ -51,7 +51,7 @@ extern char mem[];
 extern void zType(const char *str);
 extern void emit(const char ch);
 extern int  key();
-extern int  qKey();
+extern int  keyboard_has_input();
 extern char *strcpy(char *a, const char *b);
 extern void *memcpy(void *dest, const void *src, size_t n);
 extern void *memmove(void *dest, const void *src, size_t n);

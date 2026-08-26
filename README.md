@@ -1,6 +1,6 @@
 # Bare Metal OS - QEMU
 
-A minimal bare-metal x86 kernel written in pure C and booted under QEMU. It includes a simple text-mode VGA console, serial output, interrupt-driven keyboard input, a PIT-based tick counter, and a small Forth-like VM for experimentation.
+A minimal bare-metal x86 kernel written in pure C and booted under QEMU. It includes a simple text-mode VGA console, serial output, interrupt-driven keyboard input, a PIT-based tick counter, and a Forth VM (not ANSI-Standard).
 
 ## Features
 
@@ -12,23 +12,24 @@ A minimal bare-metal x86 kernel written in pure C and booted under QEMU. It incl
 - **Interrupts**: GDT, IDT, PIC, keyboard, and timer handling
 - **Keyboard input**: buffered PS/2 keyboard support
 - **Tick counter**: PIT-driven 50 Hz timer used by the VM and timing helpers
-- **DWC VM**: the in-kernel Forth-style interpreter is compiled and linked
+- **DWC VM**: the Forth interpreter built into the kernel
 - **QEMU compatible**: boots directly with the `-kernel` flag or via the generated ISO
 
 ## Architecture
 
 ```text
-block-01.fth    - translates boot.f -> boot.h using fwc
-boot.f          - Forth source code for base forth system
+block-01.fth    - Translates boot.f -> boot.h using fwc
+boot.f          - Forth source code for the OS
+boot.h          - Auto-generated C header file of 'boot.f'
 dwc-vm.c        - Forth-style VM implementation
 dwc-vm.h        - VM interface and memory layout declarations
-kernel.c        - kernel core: VGA, serial, PIC, keyboard, timer, IRQ setup
-kernel.h        - extern functions for kernel.c
+kernel.c        - Kernel core: VGA, serial, PIC, keyboard, timer, IRQ setup
+kernel.h        - Extern functions for kernel.c
 LICENSE         - MIT license
-linker.ld       - memory layout and ELF placement
-Makefile        - build system
+linker.ld       - Memory layout and ELF placement
+Makefile        - Build system
 os.c            - OS/runtime support layer and freestanding compatibility helpers
-README.md       - this file
+README.md       - This file
 ```
 
 ## VGA palette
@@ -81,6 +82,8 @@ The default kernel text color is white-on-black, which is stored as `0x0F` in [k
 ### Prerequisites
 
 You will need fwc, a 32-bit toolchain and QEMU.
+
+fwc is located here: https://github.com/CCurl/fwc
 
 ```bash
 # Ubuntu/Debian
@@ -148,30 +151,30 @@ The kernel implements:
 
 This is the Forth-like VM used by the project. It includes:
 
-- a dictionary and primitive table
+- A dictionary and primitive table
 - stack operations and compiled words
 - VM entry points like `outer()`, `inner()`, and `dwcInit()`
-- primitive hooks for `emit`, `ztype`, `key`, `key?`, and `timer`
+- Primitive hooks for `emit`, `ztype`, `key`, `key?`, and `timer`
 
 ### os.c
 
 This file provides the minimal runtime glue needed for a freestanding build, including:
 
 - libc-like string/memory helpers
-- keyboard and timer wrappers used by the VM
-- stubbed `emit` / `ztype` output support
+- Keyboard and timer wrappers used by the VM
+- `emit` / `ztype` output support
 
 ### linker.ld
 
 Defines the memory layout:
 
-- code starts at `0x100000` (1 MB)
-- a flat single-segment kernel image is used
+- Code starts at `0x100000` (1 MB)
+- A flat single-segment kernel image is used
 
 ## Important notes
 
 - **No full standard library**: the kernel is built with `-ffreestanding`
-- **No dynamic memory**: the project is still intentionally minimal
+- **No dynamic memory**: the project is intentionally minimal
 - **Interrupts are active**: GDT/IDT, keyboard, and timer are implemented
 - **Timer rate**: the PIT is configured for 50 Hz, so `system_ticks` advances at roughly 20 ms per tick
 - **The VM is linked into the kernel**: the build includes [dwc-vm.c](dwc-vm.c)
@@ -202,8 +205,8 @@ sudo apt-get install grub-pc-bin xorriso
 
 ### QEMU hangs after boot
 
-- this may happen if the kernel is waiting for input or interrupts are not configured properly
-- use `Ctrl+A` then `X` to exit QEMU
+- This may happen if the kernel is waiting for input or interrupts are not configured properly
+- Use `Ctrl+A` then `X` to exit QEMU
 
 ## References
 

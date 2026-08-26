@@ -358,11 +358,11 @@ void pic_init(void) {
 
 /* Check whether a keypress is waiting in the keyboard buffer. */
 int keyboard_has_input(void) {
-    return keyboard_head != keyboard_tail;
+    return (keyboard_head != keyboard_tail) ? 1 : 0;
 }
 
 /* Read character from keyboard buffer (non-blocking) */
-int keyboard_getchar(void) {
+int keyboard_get_char(void) {
     while (keyboard_head != keyboard_tail) {
         uint8_t scancode = (uint8_t)keyboard_buffer[keyboard_tail];
         keyboard_tail = (keyboard_tail + 1) % KEYBOARD_BUFFER_SIZE;
@@ -402,13 +402,6 @@ int keyboard_getchar(void) {
     }
 
     return -1;  /* No character available */
-}
-
-/* Read character from keyboard buffer (blocking). */
-int keyboard_read_char(void) {
-    int c;
-    while ((c = keyboard_getchar()) == -1) { }
-    return c;
 }
 
 /* Initialize serial port for debugging */

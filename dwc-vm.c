@@ -59,7 +59,7 @@
 	X(XOR,    "xor",      t = pop(); TOS ^= t; ) \
 	X(FIND,   "find",     push((cell)findInDict((char *)0)); ) \
 	X(KEY,    "key",      push(key()); ) \
-	X(QKEY,   "key?",     push(qKey()); ) \
+	X(QKEY,   "key?",     push(keyboard_has_input()); ) \
 	X(EMIT,   "emit",     emit((char)pop()); ) \
 	X(ADDW,   "add-word", addToDict(0); ) \
 	X(OUTER,  "outer",    t = pop(); outer((char*)t); ) \
