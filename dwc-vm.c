@@ -202,6 +202,7 @@ void fType(char *str) {
 		if (c== '\\') {
 			c = *(str++);
 			switch (c) {
+				case  'b': emit('\b');
 				BCASE 'n': emit('\n');
 				BCASE 'r': emit('\r');
 				BCASE 't': emit('\t');
@@ -259,16 +260,17 @@ void outer(const char *src) {
 void dwcInit() {
 	NVP_T prims[] = { PRIMS(X3) { 0, 0 } };
 	NVP_T nv[] = {
-		{ "version", VERSION },
-		{ "(h)",     (cell)&here },    { "(l)",       (cell)&last },
-		{ "(lsp)",   (cell)&lsp },     { "lstk",      (cell)&lstk[0] },
-		{ "(rsp)",   (cell)&rsp },     { "rstk",      (cell)&rstk[0] },
-		{ "(tsp)",   (cell)&tsp },     { "tstk",      (cell)&tstk[0] },
-		{ "(sp)",    (cell)&dsp },     { "stk",       (cell)&dstk[0] },
-		{ "state",   (cell)&state },   { "base",      (cell)&base },
-		{ "mem",     (cell)&mem[0] },  { "mem-sz",    (cell)MEM_SZ },
-		{ ">in",     (cell)&toIn},     { "de-sz",     (cell)sizeof(DE_T)},
-		{ "cell",    (cell)CELL_SZ },  { 0, 0 }
+		{ "version",  VERSION },          { "text-color", (cell)&text_color },
+		{ "cursor-x", (cell)&cursor_x },  { "cursor-y",   (cell)&cursor_y },
+		{ "(h)",      (cell)&here },      { "(l)",        (cell)&last },
+		{ "(lsp)",    (cell)&lsp },       { "lstk",       (cell)&lstk[0] },
+		{ "(rsp)",    (cell)&rsp },       { "rstk",       (cell)&rstk[0] },
+		{ "(tsp)",    (cell)&tsp },       { "tstk",       (cell)&tstk[0] },
+		{ "(sp)",     (cell)&dsp },       { "stk",        (cell)&dstk[0] },
+		{ "state",    (cell)&state },     { "base",       (cell)&base },
+		{ "mem",      (cell)&mem[0] },    { "mem-sz",     (cell)MEM_SZ },
+		{ ">in",      (cell)&toIn},       { "de-sz",      (cell)sizeof(DE_T)},
+		{ "cell",     (cell)CELL_SZ },    { 0, 0 }
 	};
 	for (int i = 0; nv[i].name; i++) { addLit(nv[i].name, nv[i].value); }
 	for (int i = 0; prims[i].name; i++) { addPrim(prims[i].name, prims[i].value); }

@@ -59,9 +59,10 @@ const struct multiboot_header multiboot_header = {
 #define ICW4_BUF_MASTER 0x0C
 #define ICW4_SFNM 0x10
 
-/* Cursor position */
-static int cursor_x = 0;
-static int cursor_y = 0;
+/*VGA cursor position and text color */
+int cursor_x = 0;
+int cursor_y = 0;
+int text_color = VGA_COLOR_WHITE_ON_BLACK;
 
 /* Keyboard state */
 #define KEYBOARD_BUFFER_SIZE 256
@@ -196,13 +197,13 @@ void gdt_init(void) {
 
 /* Keyboard scan code to ASCII conversion table */
 static const char scancode_to_ascii[] = {
-     0,  27,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b', '\t',
-    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n', 0,  'a', 's',
-    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',  0, '\\', 'z', 'x', 'c', 'v',
-    'b', 'n', 'm', ',', '.', '/',   0, '*',    0, ' ',  0,   0,    0,   0,   0,  0,
-      0,   0,   0,   0,   0,   0,   0, '7',  '8', '9', '-', '4', '5', '6', '+', '1',
-    '2', '3', '0', '.',   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,   0
+     0,  27,  '1', '2', '3', '4', '5', '6',  '7',  '8', '9',  '0', '-', '=',   8,   9,
+    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',  'o',  'p', '[',  ']',  10,   0, 'a', 's',
+    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'',  '`',   0, '\\', 'z', 'x', 'c', 'v',
+    'b', 'n', 'm', ',', '.', '/',   0, '*',    0,  ' ',   0,    0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0, '7',   '8', '9', '-',  '4', '5', '6', '+', '1',
+    '2', '3', '0', '.',   0,   0,   0,   0,    0,    0,   0,    0,   0,   0,   0,   0,
+      0,   0,   0,   0,   0,   0,   0,   0,    0,    0,   0,    0,   0,   0,   0,   0
 };
 
 /* Translate a scancode to a character, honoring Shift and Ctrl state. */
@@ -414,46 +415,6 @@ int keyboard_read_char(void) {
     return c;
 }
 
-/* Read a full line from the keyboard, echoing each character as it is typed. */
-void keyboard_readline(char *buffer, int max_length) {
-    int pos = 0;
-
-    while (pos < max_length - 1) {
-        int c = keyboard_getchar();
-        if (c < 0) {
-            continue;
-        }
-
-        if (c == '\n') {
-            // vga_putchar('\r');
-            // vga_putchar('\n');
-            buffer[pos] = '\0';
-            return;
-        } else if (c == '\b') {
-            if (pos > 0) {
-                pos--;
-                if (cursor_x > 0) {
-                    cursor_x--;
-                    uint16_t *vga = (uint16_t *)VGA_MEMORY;
-                    vga[cursor_y * VGA_COLS + cursor_x] =
-                        ((uint16_t)VGA_COLOR_WHITE_ON_BLACK << 8) | ' ';
-                    vga_set_cursor(cursor_x, cursor_y);
-                }
-            }
-        } else {
-            buffer[pos++] = c;
-            vga_putchar(c);
-        }
-    }
-
-    buffer[pos] = '\0';
-}
-
-/* Backward-compatible line reader. */
-void keyboard_getline(char *buffer, int max_length) {
-    keyboard_readline(buffer, max_length);
-}
-
 /* Initialize serial port for debugging */
 void serial_init(void) {
     uint16_t port = 0x3F8; /* COM1 */
@@ -468,24 +429,24 @@ void serial_init(void) {
 }
 
 /* Write a character to serial port */
-void serial_putchar(char c) {
-    uint16_t port = 0x3F8; /* COM1 */
-    
-    /* Wait for transmit buffer to be empty */
-    while ((inb(port + 5) & 0x20) == 0);
-    
-    outb(port, c);
-}
+// void serial_emit(char c) {
+//     uint16_t port = 0x3F8; /* COM1 */
+//     
+//     /* Wait for transmit buffer to be empty */
+//     while ((inb(port + 5) & 0x20) == 0);
+//     
+//     outb(port, c);
+// }
 
 /* Write a string to serial port */
-void serial_puts(const char *str) {
-    for (int i = 0; str[i] != '\0'; i++) {
-        serial_putchar(str[i]);
-        if (str[i] == '\n') {
-            serial_putchar('\r');
-        }
-    }
-}
+// void serial_zType(const char *str) {
+//     for (int i = 0; str[i] != '\0'; i++) {
+//         serial_emit(str[i]);
+//         if (str[i] == '\n') {
+//             serial_emit('\r');
+//         }
+//     }
+// }
 
 /* Set cursor position in VGA text mode */
 void vga_set_cursor(int x, int y) {
@@ -499,18 +460,25 @@ void vga_set_cursor(int x, int y) {
 }
 
 /* Write a character to VGA text mode */
-void vga_putchar(char c) {
+void emit(char c) {
     uint16_t *vga = (uint16_t *)VGA_MEMORY;
-    uint16_t color = VGA_COLOR_WHITE_ON_BLACK;
+    uint16_t color = (uint16_t)text_color;
     
     if (c == '\n') {
         cursor_x = 0;
         cursor_y++;
     } else if (c == '\r') {
         cursor_x = 0;
+    } else if (c == '\b') {
+        if (cursor_x > 0) {
+            cursor_x--;
+        } else if (cursor_y > 0) {
+            cursor_y--;
+            cursor_x = VGA_COLS - 1;
+        }
     } else if (c == '\t') {
         ++cursor_x;
-        while (cursor_x < VGA_COLS && (cursor_x % 7 != 0)) {
+        while ((cursor_x < VGA_COLS) && ((cursor_x % 8) != 0)) {
             ++cursor_x;
         }
     } else {
@@ -542,9 +510,9 @@ void vga_putchar(char c) {
 }
 
 /* Write a string to VGA text mode */
-void vga_puts(const char *str) {
+void zType(const char *str) {
     for (int i = 0; str[i] != '\0'; i++) {
-        vga_putchar(str[i]);
+        emit(str[i]);
     }
 }
 
@@ -579,9 +547,5 @@ void kernel_main(void) {
     /* Enable interrupts */
     sti();
 
-    /* Display welcome message */
-    // vga_puts("=== Bare Metal OS ===\n");
-    // serial_puts("=== Bare Metal OS ===\n");
-    
     dwcRun();  /* Start the Forth-like interpreter */
 }

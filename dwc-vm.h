@@ -4,6 +4,7 @@
 #define __DWC_VM_H__
 #include <stddef.h>
 #include <stdint.h>
+#include "kernel.h"
 
 typedef unsigned int uint;
 
@@ -34,6 +35,8 @@ typedef struct { char *name; ucell value; } NVP_T;
 
 // These are defined by dwc-vm.c
 extern void inner(ucell start);
+extern void push(cell val);
+extern cell pop();
 extern void outer(const char *src);
 extern void addLit(const char *name, cell val);
 extern void dwcInit();

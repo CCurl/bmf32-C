@@ -125,8 +125,8 @@ cell var (buf)
 : #>   ( n--a )  drop (neg) @ if '-' hold then (buf) @ ;
 : (.)  ( n-- )   <# #s #> ztype ;
 : .    ( n-- )   (.) space ;
-: .hex ( n-- )   0 $10 .nwb ;
-: .bin ( n-- )   0 %10 .nwb ;
+: .hex ( n-- )   2 $10 .nwb ;
+: .bin ( n-- )   8 %10 .nwb ;
 : .dec ( n-- )   0 #10 .nwb ;
 
 : 0sp 0 (sp) ! ;
@@ -150,6 +150,16 @@ cell var (buf)
 		x@ de-sz + x!
     next -L ;
 
+: accept ( addr sz -- len )
+    +L >r y! 0 z!
+    begin
+        key x!
+        x@ 10 = if 0 c!y z@ -L exit then
+        x@ 32 127 btwi if rdrop x@ c!y+ z++ x@ emit then
+        x@ 8 = z@ 0 > and if y-- z-- .f" \b \b" then
+    again
+;
+
 cell var t4   cell var t5
 : [[ here t4 !  vhere t5 !  1 state ! ;
 : ]] (exit) , 0 state ! t4 @ dup >r (h) ! t5 @ (vh) ! ; immediate
@@ -170,6 +180,17 @@ cell var t4   cell var t5   cell var t6
 : s-eqn  ( s1 s2 n--f ) +L3 z@ for c@x+ c@y+ = if0 -L 0 unloop exit then next -L 1 ;
 : s-eq   ( s1 s2--f ) dup s-len 1+ s-eqn ;
 
+: .c ( c-- ) dup 32 127 btwi if emit exit then drop ." ." ;
+: t1 ( addr-- ) $10 for dup c@ .c 1+ next drop ;
+: dump ( addr num-- ) 0 +L3
+    y@ for
+        z@+ 0= if cr x@ 8 $10 .nwb ." : " then
+        c@x+ 2 $10 .nwb emit
+        z@ 8 = if space then
+        z@ $10 = if x@ $10 - t1 0 z! then
+    next -L ;
+
+: vga $B8000 ;
 
 ( test / temp )
 : bm ( mb -- ) mb timer swap for next timer swap - . ;

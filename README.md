@@ -31,6 +31,51 @@ os.c            - OS/runtime support layer and freestanding compatibility helper
 README.md       - this file
 ```
 
+## VGA palette
+
+The console uses the standard VGA text-mode attribute byte format:
+
+- low nibble = foreground color
+- high nibble = background color
+
+The standard 16 foreground colors are:
+
+| Value | Color |
+| --- | --- |
+| 0x0 | black |
+| 0x1 | blue |
+| 0x2 | green |
+| 0x3 | cyan |
+| 0x4 | red |
+| 0x5 | magenta |
+| 0x6 | brown |
+| 0x7 | light gray |
+| 0x8 | dark gray |
+| 0x9 | light blue |
+| 0xA | light green |
+| 0xB | light cyan |
+| 0xC | light red |
+| 0xD | light magenta |
+| 0xE | yellow |
+| 0xF | white |
+
+The 8 base background colors are the same values shifted into the high nibble:
+
+| Background value | Color |
+| --- | --- |
+| 0x00 | black |
+| 0x10 | blue |
+| 0x20 | green |
+| 0x30 | cyan |
+| 0x40 | red |
+| 0x50 | magenta |
+| 0x60 | brown |
+| 0x70 | light gray |
+
+The bright background variants follow the same pattern with the high-intensity bit set, e.g. `0xF0` for white background.
+
+The default kernel text color is white-on-black, which is stored as `0x0F` in [kernel.c](kernel.c#L31-L37) and [kernel.c](kernel.c#L61-L65).
+
 ## Building
 
 ### Prerequisites

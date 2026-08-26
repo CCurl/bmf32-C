@@ -11,9 +11,11 @@ void sys_load();
 void repl() {
     if (state != COMPILE) { state = INTERPRET; }
     zType((state == COMPILE) ? " ... "  : " ok\n");
-    keyboard_readline(tib, sizeof(tib));
-    emit(' ');
-    outer(tib);
+    push((cell)tib); push(256); outer("accept");
+    if (pop()) {
+        emit(' ');
+        outer(tib);
+    }
 }
 
 void dwcRun() {
@@ -25,16 +27,13 @@ void dwcRun() {
 // ==================================================
 int strlen(const char *s) {
     int len = 0;
-    while (s && s[len] != '\0') {
-        len++;
-    }
+    while (s && s[len] != '\0') { len++; }
     return len;
 }
 
 char *strcpy(char *dest, const char *src) {
     char *out = dest;
-    while ((*dest++ = *src++) != '\0') {
-    }
+    while ((*dest++ = *src++) != '\0') { }
     return out;
 }
 
@@ -96,18 +95,6 @@ int key(void) {
 
 int qKey(void) {
     return keyboard_has_input() ? 1 : 0;
-}
-
-void zType(const char *str) {
-    if (str) {
-        vga_puts(str);
-        // serial_puts(str);
-    }
-}
-
-void emit(const char ch) {
-    vga_putchar(ch);
-    // serial_putchar(ch);
 }
 
 int timer(void) {
