@@ -86,6 +86,7 @@ vars (vh) ! \
 : [ ( -- ) 0 state ! ; immediate  ( 0 = INTERPRET ) \
 : ] ( -- ) 1 state ! ;            ( 1 = COMPILE ) \
 : rdrop ( -- ) r> drop ; inline \
+: tdrop ( -- ) t> drop ; inline \
 : tuck  ( a b--b a b )   swap over ; inline \
 : nip   ( a b--b )       swap drop ; inline \
 : ?dup ( n--n n|0 )  -if dup then ; \

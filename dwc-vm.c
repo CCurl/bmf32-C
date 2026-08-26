@@ -27,17 +27,17 @@
 	X(RTO,    ">r",       rpush(pop()); ) \
 	X(RAT,    "r@",       push(rstk[rsp]); ) \
 	X(RFROM,  "r>",       push(rpop()); ) \
-	X(TSPI,   "+L",       if (tsp < (STK_SZ-3)) { tsp += 3; } ) \
-	X(TSPD,   "-L",       if (2 < tsp) { tsp -= 3; } ) \
-	X(XSTO,   "x!",       tstk[tsp] = pop(); ) \
-	X(YSTO,   "y!",       tstk[tsp+1] = pop(); ) \
-	X(ZSTO,   "z!",       tstk[tsp+2] = pop(); ) \
-	X(XFET,   "x@",       push(tstk[tsp]); ) \
-	X(YFET,   "y@",       push(tstk[tsp+1]); ) \
-	X(ZFET,   "z@",       push(tstk[tsp+2]); ) \
-	X(XFETI,  "x@+",      push(tstk[tsp]++); ) \
-	X(YFETI,  "y@+",      push(tstk[tsp+1]++); ) \
-	X(ZFETI,  "z@+",      push(tstk[tsp+2]++); ) \
+	X(XSPI,   "+L",       if (xsp < (STK_SZ-3)) { xsp += 3; } ) \
+	X(XSPD,   "-L",       if (2 < xsp) { xsp -= 3; } ) \
+	X(XSTO,   "x!",       xstk[xsp] = pop(); ) \
+	X(YSTO,   "y!",       xstk[xsp+1] = pop(); ) \
+	X(ZSTO,   "z!",       xstk[xsp+2] = pop(); ) \
+	X(XFET,   "x@",       push(xstk[xsp]); ) \
+	X(YFET,   "y@",       push(xstk[xsp+1]); ) \
+	X(ZFET,   "z@",       push(xstk[xsp+2]); ) \
+	X(XFETI,  "x@+",      push(xstk[xsp]++); ) \
+	X(YFETI,  "y@+",      push(xstk[xsp+1]++); ) \
+	X(ZFETI,  "z@+",      push(xstk[xsp+2]++); ) \
 	X(MULT,   "*",        t = pop(); TOS *= t; ) \
 	X(ADD,    "+",        t = pop(); TOS += t; ) \
 	X(SUB,    "-",        t = pop(); TOS -= t; ) \
@@ -66,18 +66,18 @@
 	X(MOVE,   "cmove",    t = pop(); n = pop(); memmove((void*)n, (void*)pop(), t); ) \
 	X(SLEN,   "s-len",    TOS = strlen((char*)TOS); ) \
 	X(NWB,    ".nwb",     t=pop(); n=pop(); iToA(pop(), t, n); ) \
-	/* X(OP59,   "op59",    free  ) */ \
-	/* X(OP60,   "op60",    free  ) */ \
-	/* X(OP61,   "op61",    free  ) */ \
-	/* X(OP62,   "op62",    free  ) */ \
-	X(LASTOP, "see",      doSee(); )
+	X(SEE,    "see",      doSee(); ) \
+	X(TTO,    ">t",       tsp = (tsp+1) & STK_SZ; tstk[tsp] = pop(); ) \
+	X(TAT,    "t@",       push(tstk[tsp]); ) \
+	X(TSTO,   "t!",       tstk[tsp] = pop(); ) \
+	X(TFROM,  "t>",       push(tstk[tsp]); tsp = (tsp-1) & STK_SZ; ) \
 
-enum { PRIMS(X1) };
+enum { PRIMS(X1) LASTOP };
 
 char mem[MEM_SZ], *toIn, wd[32];
-ucell *code=(ucell*)&mem[0], dsp, rsp, lsp, tsp;
-cell dstk[STK_SZ+1], rstk[STK_SZ+1], lstk[STK_SZ+1], tstk[STK_SZ+1];
-cell here=LASTOP+1, last=(cell)&mem[MEM_SZ], base=10, state=INTERPRET;
+ucell *code=(ucell*)&mem[0], dsp, rsp, lsp, tsp, xsp;
+cell dstk[STK_SZ+1], rstk[STK_SZ+1], lstk[STK_SZ+1], tstk[STK_SZ+1], xstk[STK_SZ+1];
+cell here=LASTOP, last=(cell)&mem[MEM_SZ], base=10, state=INTERPRET;
 DE_T tmpWords[10];
 
 void push(cell v) { if (dsp < STK_SZ) { dstk[++dsp] = v; } }
@@ -262,11 +262,12 @@ void dwcInit() {
 	NVP_T nv[] = {
 		{ "version",  VERSION },          { "text-color", (cell)&text_color },
 		{ "cursor-x", (cell)&cursor_x },  { "cursor-y",   (cell)&cursor_y },
-		{ "(ticks)",  (cell)&sys_ticks }, // { }
+		{ "(ticks)",  (cell)&sys_ticks },
 		{ "(h)",      (cell)&here },      { "(l)",        (cell)&last },
 		{ "(lsp)",    (cell)&lsp },       { "lstk",       (cell)&lstk[0] },
 		{ "(rsp)",    (cell)&rsp },       { "rstk",       (cell)&rstk[0] },
 		{ "(tsp)",    (cell)&tsp },       { "tstk",       (cell)&tstk[0] },
+		{ "(xsp)",    (cell)&xsp },       { "xstk",       (cell)&xstk[0] },
 		{ "(sp)",     (cell)&dsp },       { "stk",        (cell)&dstk[0] },
 		{ "state",    (cell)&state },     { "base",       (cell)&base },
 		{ "mem",      (cell)&mem[0] },    { "mem-sz",     (cell)MEM_SZ },
