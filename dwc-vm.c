@@ -61,15 +61,15 @@
 	X(KEY,    "key",      push(key()); ) \
 	X(QKEY,   "key?",     push(qKey()); ) \
 	X(EMIT,   "emit",     emit((char)pop()); ) \
-	X(MS,     "ms",       ms(pop()); ) \
-	X(TIMER,  "timer",    push(timer()); ) \
 	X(ADDW,   "add-word", addToDict(0); ) \
 	X(OUTER,  "outer",    t = pop(); outer((char*)t); ) \
 	X(MOVE,   "cmove",    t = pop(); n = pop(); memmove((void*)n, (void*)pop(), t); ) \
 	X(SLEN,   "s-len",    TOS = strlen((char*)TOS); ) \
 	X(NWB,    ".nwb",     t=pop(); n=pop(); iToA(pop(), t, n); ) \
-	X(OP61,   "op61",     /* free */ ) \
-	X(OP62,   "op62",     /* free */ ) \
+	/* X(OP59,   "op59",    free  ) */ \
+	/* X(OP60,   "op60",    free  ) */ \
+	/* X(OP61,   "op61",    free  ) */ \
+	/* X(OP62,   "op62",    free  ) */ \
 	X(LASTOP, "see",      doSee(); )
 
 enum { PRIMS(X1) };
@@ -262,6 +262,7 @@ void dwcInit() {
 	NVP_T nv[] = {
 		{ "version",  VERSION },          { "text-color", (cell)&text_color },
 		{ "cursor-x", (cell)&cursor_x },  { "cursor-y",   (cell)&cursor_y },
+		{ "(ticks)",  (cell)&sys_ticks }, // { }
 		{ "(h)",      (cell)&here },      { "(l)",        (cell)&last },
 		{ "(lsp)",    (cell)&lsp },       { "lstk",       (cell)&lstk[0] },
 		{ "(rsp)",    (cell)&rsp },       { "rstk",       (cell)&rstk[0] },

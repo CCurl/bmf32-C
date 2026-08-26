@@ -73,7 +73,7 @@ int shift_pressed = 0;
 int ctrl_pressed = 0;
 
 /* Timer tick counter */
-volatile uint32_t system_ticks = 0;
+volatile uint32_t sys_ticks = 0;
 
 /* Helper function to write a byte to port */
 static inline void outb(uint16_t port, uint8_t val) {
@@ -197,13 +197,13 @@ void gdt_init(void) {
 
 /* Keyboard scan code to ASCII conversion table */
 static const char scancode_to_ascii[] = {
-     0,  27,  '1', '2', '3', '4', '5', '6',  '7',  '8', '9',  '0', '-', '=',   8,   9,
-    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',  'o',  'p', '[',  ']',  10,   0, 'a', 's',
-    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'',  '`',   0, '\\', 'z', 'x', 'c', 'v',
-    'b', 'n', 'm', ',', '.', '/',   0, '*',    0,  ' ',   0,    0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0, '7',   '8', '9', '-',  '4', '5', '6', '+', '1',
-    '2', '3', '0', '.',   0,   0,   0,   0,    0,    0,   0,    0,   0,   0,   0,   0,
-      0,   0,   0,   0,   0,   0,   0,   0,    0,    0,   0,    0,   0,   0,   0,   0
+     0 ,  27, '1', '2', '3', '4', '5', '6',  '7', '8', '9',  '0', '-', '=',   8,   9,
+    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',  'o', 'p', '[',  ']',  10,  0 , 'a', 's',
+    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',  0 , '\\', 'z', 'x', 'c', 'v',
+    'b', 'n', 'm', ',', '.', '/',  0 , '*',   0 , ' ',  0 ,   0 ,  0 ,  0 ,  0 ,  0 ,
+     0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , '7',  '8', '9', '-',  '4', '5', '6', '+', '1',
+    '2', '3', '0', '.',  0 ,  0 ,  0 ,  0 ,   0 ,  0 ,  0 ,   0 ,  0 ,  0 ,  0 ,  0 ,
+     0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,   0 ,  0 ,  0 ,   0 ,  0 ,  0 ,  0 ,   0
 };
 
 /* Translate a scancode to a character, honoring Shift and Ctrl state. */
@@ -262,7 +262,7 @@ static char keyboard_translate_scancode(uint8_t scancode) {
 /* Timer interrupt handler */
 void __attribute__((interrupt)) timer_handler(void *frame) {
     (void)frame;
-    system_ticks += 20;  /* Increment ticks by 20 for 50Hz */
+    sys_ticks += 20;  /* Increment ticks by 20 for 50Hz */
     asm volatile("outb %0, %1" : : "a"((uint8_t)0x20), "Nd"(PIC_MASTER_CMD));
 }
 
@@ -296,10 +296,6 @@ void pit_init(uint32_t hz) {
     uint8_t mask = inb(PIC_MASTER_DATA);
     mask &= ~0x01;
     outb(PIC_MASTER_DATA, mask);
-}
-
-uint32_t get_ticks(void) {
-    return system_ticks;
 }
 
 /* Initialize IDT (Interrupt Descriptor Table) */

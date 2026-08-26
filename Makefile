@@ -62,15 +62,15 @@ iso: $(KERNEL)
 
 # Run on QEMU
 run: $(KERNEL)
-	$(QEMU) -kernel $(KERNEL) -m 24M -serial stdio -d guest_errors
+	$(QEMU) -kernel $(KERNEL) -m 20M -serial stdio -d guest_errors
 
 # Run from ISO
 run-iso: iso
-	$(QEMU) -cdrom $(ISO_IMAGE) -m 24M -serial stdio -d guest_errors
+	$(QEMU) -cdrom $(ISO_IMAGE) -m 20M -serial stdio -d guest_errors
 
 # Debug with GDB
 debug: $(KERNEL)
-	$(QEMU) -kernel $(KERNEL) -m 24M -serial stdio -S -gdb tcp::1234 -d guest_errors
+	$(QEMU) -kernel $(KERNEL) -m 20M -serial stdio -S -gdb tcp::1234 -d guest_errors
 
 # Clean build artifacts
 clean:

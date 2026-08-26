@@ -18,7 +18,7 @@ typedef unsigned int uint;
 #define ucell           uint32_t
 
 #define byte             uint8_t
-#define MEM_SZ         20*1024*1024  /* 20MB */
+#define MEM_SZ         16*1024*1024  /* 16MB */
 #define STK_SZ                63
 #define IMMED               0x80
 #define INLINE              0x40
@@ -44,7 +44,7 @@ extern void dwcRun();
 extern int nextWord();
 extern DE_T *addToDict(char *w);
 extern void iToA(cell n, cell b, cell w);
-extern cell state;
+extern cell state, last;
 extern char mem[];
 
 // dwc-vm.c needs these to be defined
@@ -52,12 +52,10 @@ extern void zType(const char *str);
 extern void emit(const char ch);
 extern int  key();
 extern int  qKey();
-extern cell timer();
-extern void ms(cell sleepForMS);
-extern int strlen(const char *a);
 extern char *strcpy(char *a, const char *b);
 extern void *memcpy(void *dest, const void *src, size_t n);
 extern void *memmove(void *dest, const void *src, size_t n);
+extern int strlen(const char *a);
 extern int strEqI(const char *a, const char *b);
 
 #endif //  __DWC_VM_H__

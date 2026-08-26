@@ -1,3 +1,4 @@
+( NOTE: 'boot.f' is used to generate 'boot.h' )
 : last (l) @ ;
 : here (h) @ ;
 : inline    ( -- ) $40 last cell + c! ;
@@ -31,9 +32,9 @@
 : until (jmpz)    , , ; immediate
 
 ( val and (val) define a very efficient variable mechanism )
-( Usage:  val a@   (val) (a)   : a! (xx) ! ; )
+( Usage:  val a@   (val) (a)   : a! (a) ! ; )
 : const ( n-- ) add-word (lit) , , (exit) , ;
-:  val  ( -- ) 0 const ;
+: val   ( -- ) 0 const ;
 : (val) ( -- ) here 2 - ->code const ;
 : kb ( n--m ) 1024 * ;
 : mb ( n--m ) kb kb ;
@@ -45,6 +46,7 @@ vars (vh) !
 : vhere ( --a ) (vh) @ ;
 : allot ( n-- ) (vh) +! ;
 : var   ( n-- ) vhere const allot ;
+: variable   ( -- ) cell const allot ;
 
 ( 3 built-in variables : x,y,z )
 : +L1 ( x -- )    +L x! ;
@@ -87,6 +89,8 @@ vars (vh) !
 : tuck  ( a b--b a b )   swap over ; inline
 : nip   ( a b--b )       swap drop ; inline
 : ?dup ( n--n n|0 )  -if dup then ;
+: timer ( --n ) (ticks) @ ;
+: ms ( n-- ) timer + >r begin timer r@ > until rdrop ;
 : 2+    ( n--n' )        1+ 1+ ; inline
 : 2dup  ( a b--a b a b ) over over ; inline
 : 2drop ( a b-- )        drop drop ; inline
@@ -139,7 +143,7 @@ cell var (buf)
 : words ( -- ) cr +L last x! 0 y! 0 z! begin
         x@ dict-end < if0 z@ .f" (%d words)" -L exit then
         x@ .word tab z++
-        x@ cell+ 1+ c@ 7 > if y++ then
+        x@ cell+ 1+ c@ 6 > if y++ then
         y@+ 7 > if cr 0 y! then
         x@ de-sz + x!
     again ;

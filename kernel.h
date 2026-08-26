@@ -10,6 +10,8 @@ extern int cursor_x;
 extern int cursor_y;
 extern int text_color;
 
+extern volatile uint32_t sys_ticks;
+
 /* Keyboard API */
 int keyboard_has_input(void);
 int keyboard_getchar(void);
@@ -17,7 +19,6 @@ int keyboard_read_char(void);
 
 /* Timer API */
 void pit_init(uint32_t hz);
-uint32_t get_ticks(void);
 
 /* VGA API */
 void emit(char c);

@@ -4,11 +4,9 @@
 #include "dwc-vm.h"
 #include "boot.h"
 
-char tib[256];
-void sys_load();
-
 // ==================================================
 void repl() {
+    char *tib = (char *)&mem[last-1024];
     if (state != COMPILE) { state = INTERPRET; }
     zType((state == COMPILE) ? " ... "  : " ok\n");
     push((cell)tib); push(256); outer("accept");
@@ -21,6 +19,7 @@ void repl() {
 void dwcRun() {
     dwcInit();
     outer(DWC_SRC);
+    // repl();
     while (1) { repl(); }
 }
 
@@ -59,52 +58,24 @@ void *memcpy(void *dest, const void *src, size_t n) {
     return dest;
 }
 
-void *memset(void *s, int c, int n) {
-    uint8_t *p = (uint8_t *)s;
-    for (int i = 0; i < n; ++i) {
-        p[i] = (uint8_t)c;
-    }
-    return s;
-}
-
 void *memmove(void *dest, const void *src, size_t n) {
     uint8_t *d = (uint8_t *)dest;
     const uint8_t *s = (const uint8_t *)src;
-    if (d == s || n == 0) {
-        return dest;
-    }
+    if (d == s || n == 0) { return dest; }
     if (d < s) {
-        for (size_t i = 0; i < n; ++i) {
-            d[i] = s[i];
-        }
+        for (size_t i = 0; i < n; ++i) { d[i] = s[i]; }
     } else {
-        for (size_t i = n; i > 0; --i) {
-            d[i - 1] = s[i - 1];
-        }
+        for (size_t i = n; i > 0; --i) { d[i - 1] = s[i - 1]; }
     }
     return dest;
 }
 
 int key(void) {
     int c = -1;
-    while (c < 0) {
-        c = keyboard_getchar();
-    }
+    while (c < 0) { c = keyboard_getchar(); }
     return c;
 }
 
 int qKey(void) {
     return keyboard_has_input() ? 1 : 0;
-}
-
-int timer(void) {
-    return (int)get_ticks();
-}
-
-void ms(int sleepForMS) {
-    uint32_t start = get_ticks();
-    uint32_t delay = (sleepForMS > 0) ? (uint32_t)sleepForMS : 0u;
-    while ((get_ticks() - start) < delay) {
-        /* busy wait until elapsed */
-    }
 }
