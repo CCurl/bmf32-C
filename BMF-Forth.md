@@ -8,7 +8,8 @@ The VM is a small stack-based interpreter with a data stack, return stack, and a
 
 - Data stack: `dstk[]`
 - Return stack: `rstk[]`
-- Local stack: `lstk[]`
+- Loop stack: `lstk[]` (loop control state)
+- Locals stack: `xstk[]` (x, y, z local variables)
 - Temporary stack: `tstk[]`
 
 The VM uses a classic prefix stack notation in its documentation:
@@ -74,16 +75,16 @@ The VM uses a classic prefix stack notation in its documentation:
 | `key` | `-- c` | Read one character from the keyboard buffer. |
 | `key?` | `-- flag` | Return nonzero if a key is available. |
 | `emit` | `c --` | Emit one character to the VGA console. |
-| `ms` | `n --` | Delay for `n` milliseconds. |
-| `timer` | `-- ticks` | Return the current timer tick value. |
 | `add-word` | `--` | Add a new dictionary entry from the input stream. |
 | `outer` | `addr --` | Interpret a string from memory as Forth input. |
 | `cmove` | `count src dst --` | Copy `count` bytes from `src` to `dst` using `memmove()`. |
 | `s-len` | `addr -- len` | Return the length of a C string at `addr`. |
 | `.nwb` | `n width base --` | Print a number using a given width and base. |
-| `op61` | `--` | Reserved primitive slot; currently unused. |
-| `op62` | `--` | Reserved primitive slot; currently unused. |
 | `see` | `--` | Display the definition of the most recent word found by the dictionary scanner. |
+| `>t` | `x --` | Move `x` from the data stack to the temporary stack. |
+| `t@` | `-- x` | Copy the top temporary-stack item to the data stack. |
+| `t!` | `x --` | Store to temporary stack (replaces the current temporary stack item). |
+| `t>` | `-- x` | Move a value from the temporary stack to the data stack. |
 
 ## Notes on control flow
 
