@@ -1,12 +1,9 @@
-#include <stddef.h>
-#include <stdint.h>
-#include "kernel.h"
 #include "dwc-vm.h"
 #include "boot.h"
 
 // ==================================================
 void repl() {
-    char *tib = (char *)&mem[last-1024];
+    char *tib = (char *)(last-1024);
     if (state != COMPILE) { state = INTERPRET; }
     zType((state == COMPILE) ? " ... "  : " ok\n");
     push((cell)tib); push(256); outer("accept");
@@ -19,7 +16,6 @@ void repl() {
 void dwcRun() {
     dwcInit();
     outer(DWC_SRC);
-    // repl();
     while (1) { repl(); }
 }
 
@@ -49,23 +45,23 @@ int strEqI(const char *a, const char *b) {
     return *a == *b;
 }
 
-void *memcpy(void *dest, const void *src, size_t n) {
+void *memcpy(void *dest, const void *src, cell n) {
     uint8_t *d = (uint8_t *)dest;
     const uint8_t *s = (const uint8_t *)src;
-    for (size_t i = 0; i < n; ++i) {
+    for (cell i = 0; i < n; ++i) {
         d[i] = s[i];
     }
     return dest;
 }
 
-void *memmove(void *dest, const void *src, size_t n) {
+void *memmove(void *dest, const void *src, cell n) {
     uint8_t *d = (uint8_t *)dest;
     const uint8_t *s = (const uint8_t *)src;
     if (d == s || n == 0) { return dest; }
     if (d < s) {
-        for (size_t i = 0; i < n; ++i) { d[i] = s[i]; }
+        for (cell i = 0; i < n; ++i) { d[i] = s[i]; }
     } else {
-        for (size_t i = n; i > 0; --i) { d[i - 1] = s[i - 1]; }
+        for (cell i = n; i > 0; --i) { d[i - 1] = s[i - 1]; }
     }
     return dest;
 }

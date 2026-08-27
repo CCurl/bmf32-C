@@ -3,9 +3,6 @@
  * A minimal kernel for QEMU that runs pure C code
  */
 
-#include <stddef.h>
-#include <stdint.h>
-#include "kernel.h"
 #include "dwc-vm.h"
 
 /* Multiboot1 Header Definitions */

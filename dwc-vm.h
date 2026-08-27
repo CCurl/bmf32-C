@@ -1,14 +1,11 @@
-// A Tachyon inspired system, MIT license, (c) 2025 Chris Curl
+// A Tachyon inspired system, MIT license, (c) 2026 Chris Curl
 
 #ifndef __DWC_VM_H__
 #define __DWC_VM_H__
-#include <stddef.h>
 #include <stdint.h>
 #include "kernel.h"
 
-typedef unsigned int uint;
-
-#define VERSION         20260824
+#define VERSION         20260827
 
 #define LIT_MASK      0x40000000
 #define LIT_BITS      0x3FFFFFFF
@@ -16,6 +13,7 @@ typedef unsigned int uint;
 #define NAME_SZ               26
 #define cell             int32_t
 #define ucell           uint32_t
+#define NULL                   0
 
 #define byte             uint8_t
 #define MEM_SZ         16*1024*1024  /* 16MB */
@@ -44,7 +42,8 @@ extern void dwcRun();
 extern int nextWord();
 extern DE_T *addToDict(char *w);
 extern void iToA(cell n, cell b, cell w);
-extern cell state, last;
+extern cell state;
+extern DE_T *last;
 extern char mem[];
 
 // dwc-vm.c needs these to be defined
@@ -53,8 +52,8 @@ extern void emit(const char ch);
 extern int  key();
 extern int  keyboard_has_input();
 extern char *strcpy(char *a, const char *b);
-extern void *memcpy(void *dest, const void *src, size_t n);
-extern void *memmove(void *dest, const void *src, size_t n);
+extern void *memcpy(void *dest, const void *src, cell n);
+extern void *memmove(void *dest, const void *src, cell n);
 extern int strlen(const char *a);
 extern int strEqI(const char *a, const char *b);
 
