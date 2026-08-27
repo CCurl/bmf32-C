@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "kernel.h"
 
-#define VERSION         20260827
+#define VERSION         20260831
 
 #define LIT_MASK      0x40000000
 #define LIT_BITS      0x3FFFFFFF
