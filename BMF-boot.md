@@ -17,6 +17,22 @@ The boot vocabulary adds several foundational concepts:
 
 The system is still a small, compact Forth; it is not ANSI-standard Forth, but it is very usable for kernel-level work.
 
+## Hardware boundary
+
+The boot words are the higher-level runtime vocabulary, but they sit on top of the VM's primitive layer. The disk driver itself is intentionally kept at the raw hardware boundary and is not described as a filesystem vocabulary here.
+
+The actual block-device interface is:
+
+- `ata_read_block(block_number, buffer)`
+- `ata_write_block(block_number, buffer)`
+
+and the VM exposes the equivalent primitive words:
+
+- `blk-r` ( addr blockNumber-- ) - Read block
+- `blk-w` ( addr blockNumber-- ) - Write block
+
+These words are part of the primitive layer in `dwc-vm.c`, not part of the boot dictionary generated from `boot.f`.
+
 ## Dictionary and code-generation words
 
 These words manipulate the VM dictionary and compiled code stream.
@@ -537,6 +553,7 @@ The relationship is:
 - `fwc` translates it to generated C code in `boot.h`
 - `boot.h` is included by the kernel build
 - the VM executes the compiled words from the generated source
+- alternatively, you can edit the `boot.h` file directly without needing `fwc`
 
 ## Summary
 

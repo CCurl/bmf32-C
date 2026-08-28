@@ -23,6 +23,7 @@ KERNEL_BIN = $(BUILD_DIR)/kernel.bin
 ISO_IMAGE = $(BUILD_DIR)/os.iso
 OS_SUPPORT_OBJ = $(BUILD_DIR)/os.o
 DWC_VM_OBJ = $(BUILD_DIR)/dwc-vm.o
+DISK_IMAGE = $(BUILD_DIR)/disk.img
 
 # Default target
 all: $(KERNEL)
@@ -61,8 +62,11 @@ iso: $(KERNEL)
 	$(GRUB_MKRESCUE) -o $(ISO_IMAGE) $(ISODIR)
 
 # Run on QEMU
-run: $(KERNEL)
-	$(QEMU) -kernel $(KERNEL) -m 20M -serial stdio -d guest_errors
+$(DISK_IMAGE): | $(BUILD_DIR)
+	dd if=/dev/zero of=$(DISK_IMAGE) bs=1M count=1
+
+run: $(KERNEL) $(DISK_IMAGE)
+	$(QEMU) -kernel $(KERNEL) -drive file=$(DISK_IMAGE),if=ide,format=raw,media=disk -m 20M -serial stdio
 
 # Run from ISO
 run-iso: iso

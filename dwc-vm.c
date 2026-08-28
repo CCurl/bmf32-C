@@ -71,6 +71,8 @@
 	X(TAT,    "t@",       push(tstk[tsp]); ) \
 	X(TSTO,   "t!",       tstk[tsp] = pop(); ) \
 	X(TFROM,  "t>",       push(tstk[tsp]); tsp = (tsp-1) & STK_SZ; ) \
+	X(BLKRD,  "blk-r",    t = pop(); n = pop(); ata_read_block(t, (void*)n); ) \
+	X(BLKW,   "blk-w",    t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
 
 enum { PRIMS(X1) LASTOP };
 

@@ -83,8 +83,10 @@ The VM uses classic Forth-style stack notation:
 | `see` | `--` | Display the definition of the most recent word found by the dictionary scanner. |
 | `>t` | `x --` | Move `x` from the data stack to the temporary stack. |
 | `t@` | `-- x` | Copy the top temporary-stack item to the data stack. |
-| `t!` | `x --` | Store to temporary stack (replaces the current temporary stack item). |
+| `t!` | `x --` | Store to temporary stack TOS |
 | `t>` | `-- x` | Move a value from the temporary stack to the data stack. |
+| `blk-r` | `addr blockNumber --` | Read one 512-byte sector from disk into `addr`. |
+| `blk-w` | `addr blockNumber --` | Write one 512-byte sector from `addr` to disk. |
 
 ## Notes on control flow
 

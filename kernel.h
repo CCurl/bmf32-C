@@ -30,6 +30,10 @@ void serial_init(void);
 void serial_emit(char c);
 void serial_zType(const char *str);
 
+/* ATA/IDE block device API */
+int ata_read_block(uint32_t block_number, void *buf);
+int ata_write_block(uint32_t block_number, const void *buf);
+
 /* Interrupt registration */
 void register_interrupt_handler(uint8_t vector, void (*handler)(void));
 

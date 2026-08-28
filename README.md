@@ -164,6 +164,15 @@ This file provides the minimal runtime glue needed for a freestanding build, inc
 - Keyboard and timer wrappers used by the VM
 - `emit` / `ztype` output support
 
+### Raw disk / block device
+
+The kernel includes a raw ATA/IDE block interface at the hardware boundary. The public API is:
+
+- `int ata_read_block(uint32_t block_number, void *buf);`
+- `int ata_write_block(uint32_t block_number, const void *buf);`
+
+This is a simple 512-byte sector API. The block number is a zero-based sector index, and the buffer must be at least 512 bytes. There is no filesystem layer in this driver; it is intentionally a low-level device primitive for higher-level Forth code to build on top of.
+
 ### linker.ld
 
 Defines the memory layout:

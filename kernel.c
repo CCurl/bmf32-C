@@ -43,6 +43,12 @@ const struct multiboot_header multiboot_header = {
 #define PIC_SLAVE_CMD 0xA0
 #define PIC_SLAVE_DATA 0xA1
 
+/* ATA/IDE primary channel (PIO mode) */
+#define ATA_PRIMARY_IO_BASE   0x1F0
+#define ATA_PRIMARY_CTRL_BASE 0x3F6
+#define ATA_SECTOR_SIZE      512
+#define ATA_POLL_TIMEOUT     100000
+
 /* ICW initialization command words */
 #define ICW1_ICW4 0x01
 #define ICW1_SINGLE 0x02
@@ -84,6 +90,18 @@ static inline uint8_t inb(uint16_t port) {
     return ret;
 }
 
+/* Helper function to write a word to port */
+static inline void outw(uint16_t port, uint16_t val) {
+    asm volatile("outw %0, %1" : : "a"(val), "Nd"(port));
+}
+
+/* Helper function to read a word from port */
+static inline uint16_t inw(uint16_t port) {
+    uint16_t ret;
+    asm volatile("inw %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
 /* Enable interrupts */
 static inline void sti(void) {
     asm volatile("sti");
@@ -105,7 +123,6 @@ static inline void lidt(void *idt_ptr) {
 }
 
 /* Forward declarations for VGA functions */
-void vga_putchar(char c);
 void vga_set_cursor(int x, int y);
 
 /* GDT Entry */
@@ -412,6 +429,87 @@ void serial_init(void) {
     outb(port + 3, 0x03); /* 8 bits, no parity, 1 stop bit */
     outb(port + 2, 0xC7); /* Enable FIFO */
     outb(port + 4, 0x0B); /* Set DTR and RTS */
+}
+
+/* ATA/IDE PIO helper functions */
+static int ata_wait_bsy(void) {
+    for (int i = 0; i < ATA_POLL_TIMEOUT; i++) {
+        if ((inb(ATA_PRIMARY_IO_BASE + 7) & 0x80) == 0) {
+            return 0;
+        }
+    }
+    return -1;
+}
+
+static int ata_wait_drq(void) {
+    for (int i = 0; i < ATA_POLL_TIMEOUT; i++) {
+        uint8_t status = inb(ATA_PRIMARY_IO_BASE + 7);
+        if (status & 0x01) {
+            return -1; /* ERR */
+        }
+        if (status & 0x08) {
+            return 0; /* DRQ */
+        }
+    }
+    return -1;
+}
+
+int ata_read_block(uint32_t block_number, void *buf) {
+    if (!buf) {
+        return -1;
+    }
+
+    if (ata_wait_bsy() != 0) {
+        return -1;
+    }
+
+    outb(ATA_PRIMARY_IO_BASE + 6, 0xE0 | ((block_number >> 24) & 0x0F));
+    outb(ATA_PRIMARY_IO_BASE + 2, 1); /* sector count */
+    outb(ATA_PRIMARY_IO_BASE + 3, (uint8_t)(block_number & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 4, (uint8_t)((block_number >> 8) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 5, (uint8_t)((block_number >> 16) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 7, 0x20); /* READ SECTOR(S) */
+
+    if (ata_wait_drq() != 0) {
+        return -1;
+    }
+
+    uint16_t *dst = (uint16_t *)buf;
+    for (int i = 0; i < ATA_SECTOR_SIZE / 2; i++) {
+        dst[i] = inw(ATA_PRIMARY_IO_BASE);
+    }
+
+    return 0;
+}
+
+int ata_write_block(uint32_t block_number, const void *buf) {
+    if (!buf) {
+        return -1;
+    }
+
+    if (ata_wait_bsy() != 0) {
+        return -1;
+    }
+
+    outb(ATA_PRIMARY_IO_BASE + 6, 0xE0 | ((block_number >> 24) & 0x0F));
+    outb(ATA_PRIMARY_IO_BASE + 2, 1); /* sector count */
+    outb(ATA_PRIMARY_IO_BASE + 3, (uint8_t)(block_number & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 4, (uint8_t)((block_number >> 8) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 5, (uint8_t)((block_number >> 16) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 7, 0x30); /* WRITE SECTOR(S) */
+
+    if (ata_wait_drq() != 0) {
+        return -1;
+    }
+
+    const uint16_t *src = (const uint16_t *)buf;
+    for (int i = 0; i < ATA_SECTOR_SIZE / 2; i++) {
+        outw(ATA_PRIMARY_IO_BASE, src[i]);
+    }
+
+    /* Flush the write pipeline */
+    inb(ATA_PRIMARY_IO_BASE + 7);
+    return 0;
 }
 
 /* Write a character to serial port */
