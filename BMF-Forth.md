@@ -57,7 +57,6 @@ The VM uses classic Forth-style stack notation:
 | `-` | `n1 n2 -- n1-n2` | Subtract. |
 | `/mod` | `n1 n2 -- q r` | Divide `n1` by `n2`, returning quotient and remainder. |
 | `1+` | `n -- n+1` | Increment by one. |
-| `1-` | `n -- n-1` | Decrement by one. |
 | `<` | `n1 n2 -- flag` | True if `n1 < n2`; the VM returns `-1` for true and `0` for false. |
 | `=` | `n1 n2 -- flag` | True if `n1 == n2`; returns `-1` or `0`. |
 | `>` | `n1 n2 -- flag` | True if `n1 > n2`; returns `-1` or `0`. |
@@ -73,7 +72,6 @@ The VM uses classic Forth-style stack notation:
 | `xor` | `n1 n2 -- n1^n2` | Bitwise XOR. |
 | `find` | `-- xt` | Search the dictionary for the next word and return its execution token. |
 | `key` | `-- c` | Read one character from the keyboard buffer. |
-| `key?` | `-- flag` | Return nonzero if a key is available. |
 | `emit` | `c --` | Emit one character to the VGA console. |
 | `add-word` | `--` | Add a new dictionary entry from the input stream. |
 | `outer` | `addr --` | Interpret a string from memory as Forth input. |

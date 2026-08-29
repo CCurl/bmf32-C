@@ -50,7 +50,7 @@ vars (vh) !
 : variable   ( -- ) cell const allot ;
 : 1- 1 - ; inline
 
-( 3 built-in variables : x,y,z )
+( variables x,y,z are built-in )
 : +L1 ( x -- )    +L x! ;
 : +L2 ( x y-- )   +L y! x! ;
 : +L3 ( x y z-- ) +L z! y! x! ;
@@ -204,7 +204,7 @@ cell var t4   cell var t5   cell var t6
 : vga $B8000 ;
 
 ( test / temp )
-: bm ( mb -- ) mb timer swap for next timer swap - . ;
+: bm ( mb -- ) 1000 dup * * timer swap for next timer swap - . ;
 
 ( Disk blocks are 512 bytes )
 ( Forth blocks are 1024 bytes )

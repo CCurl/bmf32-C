@@ -177,7 +177,7 @@ This is a simple 512-byte sector API. The block number is a zero-based sector in
 
 Defines the memory layout:
 
-- Code starts at `0x100000` (1 MB)
+- The Kernel code starts at `0x100000` (1 MB)
 - A flat single-segment kernel image is used
 
 ## Important notes
