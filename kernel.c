@@ -70,8 +70,8 @@ int text_color = VGA_COLOR_WHITE_ON_BLACK;
 /* Keyboard state */
 #define KEYBOARD_BUFFER_SIZE 256
 static char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
-static int keyboard_head = 0;
-static int keyboard_tail = 0;
+int kbd_head = 0;
+int kbd_tail = 0;
 int shift_pressed = 0;
 int ctrl_pressed = 0;
 
@@ -287,10 +287,10 @@ void __attribute__((interrupt)) keyboard_handler(void *frame) {
     uint8_t scancode;
     asm volatile("inb $0x60, %0" : "=a"(scancode));
 
-    int next = (keyboard_head + 1) % KEYBOARD_BUFFER_SIZE;
-    if (next != keyboard_tail) {
-        keyboard_buffer[keyboard_head] = (char)scancode;
-        keyboard_head = next;
+    int next = (kbd_head + 1) % KEYBOARD_BUFFER_SIZE;
+    if (next != kbd_tail) {
+        keyboard_buffer[kbd_head] = (char)scancode;
+        kbd_head = next;
     }
 
     asm volatile("outb %0, %1" : : "a"((uint8_t)0x20), "Nd"(PIC_MASTER_CMD));
@@ -370,16 +370,11 @@ void pic_init(void) {
     outb(PIC_MASTER_DATA, mask);
 }
 
-/* Check whether a keypress is waiting in the keyboard buffer. */
-int keyboard_has_input(void) {
-    return (keyboard_head != keyboard_tail) ? 1 : 0;
-}
-
 /* Read character from keyboard buffer (non-blocking) */
 int keyboard_get_char(void) {
-    while (keyboard_head != keyboard_tail) {
-        uint8_t scancode = (uint8_t)keyboard_buffer[keyboard_tail];
-        keyboard_tail = (keyboard_tail + 1) % KEYBOARD_BUFFER_SIZE;
+    while (kbd_head != kbd_tail) {
+        uint8_t scancode = (uint8_t)keyboard_buffer[kbd_tail];
+        kbd_tail = (kbd_tail + 1) % KEYBOARD_BUFFER_SIZE;
 
         if (scancode == 0x2A || scancode == 0x36) {
             shift_pressed = 1;

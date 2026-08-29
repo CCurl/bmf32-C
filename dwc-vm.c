@@ -43,7 +43,6 @@
 	X(SUB,    "-",        t = pop(); TOS -= t; ) \
 	X(SLMOD,  "/mod",     t = TOS; n = NOS; TOS = n/t; NOS = n%t; ) \
 	X(INC,    "1+",       TOS += 1; ) \
-	X(DEC,    "1-",       TOS -= 1; ) \
 	X(LT,     "<",        t = pop(); TOS = (TOS  < t) ? -1 : 0; ) \
 	X(EQ,     "=",        t = pop(); TOS = (TOS == t) ? -1 : 0; ) \
 	X(GT,     ">",        t = pop(); TOS = (TOS  > t) ? -1 : 0; ) \
@@ -59,7 +58,6 @@
 	X(XOR,    "xor",      t = pop(); TOS ^= t; ) \
 	X(FIND,   "find",     push((cell)findInDict((char *)0)); ) \
 	X(KEY,    "key",      push(key()); ) \
-	X(QKEY,   "key?",     push(keyboard_has_input()); ) \
 	X(EMIT,   "emit",     emit((char)pop()); ) \
 	X(ADDW,   "add-word", addToDict(0); ) \
 	X(OUTER,  "outer",    t = pop(); outer((char*)t); ) \
@@ -71,8 +69,8 @@
 	X(TAT,    "t@",       push(tstk[tsp]); ) \
 	X(TSTO,   "t!",       tstk[tsp] = pop(); ) \
 	X(TFROM,  "t>",       push(tstk[tsp]); tsp = (tsp-1) & STK_SZ; ) \
-	X(BLKRD,  "blk-r",    t = pop(); n = pop(); ata_read_block(t, (void*)n); ) \
-	X(BLKW,   "blk-w",    t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
+	X(DSKRD,  "dsk-rd",   t = pop(); n = pop(); ata_read_block(t, (void*)n); ) \
+	X(DSKWT,  "dsk-wt",   t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
 
 enum { PRIMS(X1) LASTOP };
 
@@ -267,6 +265,7 @@ void dwcInit() {
 	NVP_T nv[] = {
 		{ "version",  VERSION },          { "text-color", (cell)&text_color },
 		{ "cursor-x", (cell)&cursor_x },  { "cursor-y",   (cell)&cursor_y },
+		{ "kbd-head", (cell)&kbd_head },  { "kbd-tail",   (cell)&kbd_tail },
 		{ "(ticks)",  (cell)&sys_ticks },
 		{ "(h)",      (cell)&here },      { "(l)",        (cell)&last },
 		{ "(lsp)",    (cell)&lsp },       { "lstk",       (cell)&lstk[0] },

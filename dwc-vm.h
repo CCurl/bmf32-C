@@ -42,15 +42,14 @@ extern void dwcRun();
 extern int nextWord();
 extern DE_T *addToDict(char *w);
 extern void iToA(cell n, cell b, cell w);
-extern cell state;
+extern char mem[], *toIn, wd[];
+extern cell here, base, state;
 extern DE_T *last;
-extern char mem[];
 
 // dwc-vm.c needs these to be defined
 extern void zType(const char *str);
 extern void emit(const char ch);
 extern int  key();
-extern int  keyboard_has_input();
 extern char *strcpy(char *a, const char *b);
 extern void *memcpy(void *dest, const void *src, cell n);
 extern void *memmove(void *dest, const void *src, cell n);

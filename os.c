@@ -16,7 +16,7 @@ void repl() {
 void dwcRun() {
     dwcInit();
     outer(DWC_SRC);
-    while (1) { repl(); }
+    do { repl(); } while (1);
 }
 
 // ==================================================

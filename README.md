@@ -149,7 +149,7 @@ The kernel implements:
 
 ### dwc-vm.c and dwc-vm.h
 
-This is the Forth-like VM used by the project. It includes:
+This is the Forth VM used by the project. It includes:
 
 - A dictionary and primitive table
 - stack operations and compiled words

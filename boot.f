@@ -8,7 +8,7 @@
 : ->code ( off--addr ) cells mem + ;
 : code@  ( off--dw )  ->code @ ;
 : code!  ( dw off-- ) ->code ! ;
-: , ( dw-- ) here dup 1 + (h) ! code! ;
+: , ( dw-- ) here dup 1+ (h) ! code! ;
 
 : (exit)   ( --n )  0 ; inline
 : (lit)    ( --n )  1 ; inline
@@ -48,6 +48,7 @@ vars (vh) !
 : allot ( n-- ) (vh) +! ;
 : var   ( n-- ) vhere const allot ;
 : variable   ( -- ) cell const allot ;
+: 1- 1 - ; inline
 
 ( 3 built-in variables : x,y,z )
 : +L1 ( x -- )    +L x! ;
@@ -94,14 +95,17 @@ vars (vh) !
 : timer ( --n ) (ticks) @ ;
 : ms ( n-- ) timer + >r begin timer r@ > until rdrop ;
 : 2+    ( n--n' )        1+ 1+ ; inline
+: 2*    ( n--n' )        dup + ; inline
 : 2dup  ( a b--a b a b ) over over ; inline
 : 2drop ( a b-- )        drop drop ; inline
 : -rot ( a b c--c a b )  swap >r swap r> ;
 : 0< ( n--f )   0 <  ; inline
 : <= ( a b--f ) > 0= ; inline
 : >= ( a b--f ) < 0= ; inline
+: <> ( a b--f ) = 0= ; inline
 : type ( a n-- ) for dup c@ emit 1+ next drop ;
 : btwi ( n l h--f ) >t over <= swap t> <= and ;
+: key? ( --f )  kbd-head @ kbd-tail @ <> ;
 : ascii? ( c--f )  32 127 btwi ;
 : com    ( n--n' ) -1 xor ;
 : negate ( n--n' ) com 1+ ;
@@ -201,6 +205,11 @@ cell var t4   cell var t5   cell var t6
 
 ( test / temp )
 : bm ( mb -- ) mb timer swap for next timer swap - . ;
+
+( Disk blocks are 512 bytes )
+( Forth blocks are 1024 bytes )
+: blk-rd ( addr blk-- ) 2* 2dup dsk-rd 1+ >t 512 + t> dsk-rd ;
+: blk-wt ( addr blk-- ) 2* 2dup dsk-wt 1+ >t 512 + t> dsk-wt ;
 
 : .version ( -- ) version <# # # #. # # #. # # #s #> ztype ;
 : .si ." bmf32-C v" .version .f" \n\nhttps://github.com/CCurl/bmf32-C" ;

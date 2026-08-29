@@ -13,8 +13,9 @@ extern int text_color;
 extern volatile uint32_t sys_ticks;
 
 /* Keyboard API */
-int keyboard_has_input(void);
-int keyboard_get_char(void);
+extern int kbd_head;
+extern int kbd_tail;
+extern int keyboard_get_char(void);
 
 /* Timer API */
 void pit_init(uint32_t hz);

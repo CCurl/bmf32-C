@@ -15,7 +15,7 @@ The boot vocabulary adds several foundational concepts:
 - stack manipulation helpers
 - memory helpers and simple debug tools
 
-The system is still a small, compact Forth; it is not ANSI-standard Forth, but it is very usable for kernel-level work.
+The system is a small, compact Forth; it is not ANSI-standard Forth.
 
 ## Hardware boundary
 

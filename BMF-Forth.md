@@ -1,6 +1,6 @@
 # BMF-Forth Primitive Reference
 
-This document describes the primitive words implemented by the in-kernel Forth-like VM in `dwc-vm.c`.
+This document describes the primitive words implemented by the in-kernel Forth VM in `dwc-vm.c`.
 
 The VM is a small stack-based interpreter with a data stack, a return stack, a loop stack, a temporary stack, and a local-variable stack. Values are 32-bit signed cells (`cell`), and strings are C-style NUL-terminated buffers.
 
