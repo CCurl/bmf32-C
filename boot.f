@@ -129,8 +129,8 @@ cell var (buf)
 : ?neg ( n--n' ) dup 0< dup (neg) c! if negate then ;
 : hold ( c-- )   -1 (buf) +! (buf) @ c! ;
 : #.   ( -- )    '.' hold ;
-: #n   ( n-- )   '0' + dup '9' > if 7 + then hold ;
-: #    ( n--m )  base @ /mod swap #n ;
+: #n   ( r-- )   '0' + dup '9' > if 7 + then hold ;
+: #    ( n--q )  base @ /mod swap #n ;
 : #s   ( n--0 )  # -if #s exit then ;
 : <#   ( n--n' ) ?neg buf 65 + (buf) ! 0 hold ;
 : #>   ( n--a )  drop (neg) @ if '-' hold then (buf) @ ;
@@ -208,8 +208,12 @@ cell var t4   cell var t5   cell var t6
 
 ( Disk blocks are 512 bytes )
 ( Forth blocks are 1024 bytes )
-: blk-rd ( addr blk-- ) 2* 2dup dsk-rd 1+ >t 512 + t> dsk-rd ;
-: blk-wt ( addr blk-- ) 2* 2dup dsk-wt 1+ >t 512 + t> dsk-wt ;
+: blk-rd ( addr blk-- ) 2* 2dup disk-rd 1+ >t 512 + t> disk-rd ;
+: blk-wt ( addr blk-- ) 2* 2dup disk-wt 1+ >t 512 + t> disk-wt ;
+
+: read-all ( -- ) 3 mb 24 for
+        dup i blk-rd 1 kb +
+    next drop ;
 
 : .version ( -- ) version <# # # #. # # #. # # #s #> ztype ;
 : .si ." bmf32-C v" .version .f" \n\nhttps://github.com/CCurl/bmf32-C" ;

@@ -439,35 +439,25 @@ static int ata_wait_bsy(void) {
 static int ata_wait_drq(void) {
     for (int i = 0; i < ATA_POLL_TIMEOUT; i++) {
         uint8_t status = inb(ATA_PRIMARY_IO_BASE + 7);
-        if (status & 0x01) {
-            return -1; /* ERR */
-        }
-        if (status & 0x08) {
-            return 0; /* DRQ */
-        }
+        if (status & 0x08) { return  0; } // DRQ
+        if (status & 0x01) { return -1; } // ERROR
     }
     return -1;
 }
 
-int ata_read_block(uint32_t block_number, void *buf) {
-    if (!buf) {
-        return -1;
-    }
+/* LBA = “Logical Block Address” */
+int ata_read_block(uint32_t LBA, void *buf) {
+    if (!buf) { return -1; }
+    if (ata_wait_bsy() != 0) { return -1; }
 
-    if (ata_wait_bsy() != 0) {
-        return -1;
-    }
-
-    outb(ATA_PRIMARY_IO_BASE + 6, 0xE0 | ((block_number >> 24) & 0x0F));
+    outb(ATA_PRIMARY_IO_BASE + 6, 0xE0 | ((LBA >> 24) & 0x0F));
     outb(ATA_PRIMARY_IO_BASE + 2, 1); /* sector count */
-    outb(ATA_PRIMARY_IO_BASE + 3, (uint8_t)(block_number & 0xFF));
-    outb(ATA_PRIMARY_IO_BASE + 4, (uint8_t)((block_number >> 8) & 0xFF));
-    outb(ATA_PRIMARY_IO_BASE + 5, (uint8_t)((block_number >> 16) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 3, (uint8_t)(LBA & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 4, (uint8_t)((LBA >> 8) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 5, (uint8_t)((LBA >> 16) & 0xFF));
     outb(ATA_PRIMARY_IO_BASE + 7, 0x20); /* READ SECTOR(S) */
 
-    if (ata_wait_drq() != 0) {
-        return -1;
-    }
+    if (ata_wait_drq() != 0) { return -1; }
 
     uint16_t *dst = (uint16_t *)buf;
     for (int i = 0; i < ATA_SECTOR_SIZE / 2; i++) {
@@ -477,25 +467,19 @@ int ata_read_block(uint32_t block_number, void *buf) {
     return 0;
 }
 
-int ata_write_block(uint32_t block_number, const void *buf) {
-    if (!buf) {
-        return -1;
-    }
+/* LBA = “Logical Block Address” */
+int ata_write_block(uint32_t LBA, const void *buf) {
+    if (!buf) { return -1; }
+    if (ata_wait_bsy() != 0) { return -1; }
 
-    if (ata_wait_bsy() != 0) {
-        return -1;
-    }
-
-    outb(ATA_PRIMARY_IO_BASE + 6, 0xE0 | ((block_number >> 24) & 0x0F));
+    outb(ATA_PRIMARY_IO_BASE + 6, 0xE0 | ((LBA >> 24) & 0x0F));
     outb(ATA_PRIMARY_IO_BASE + 2, 1); /* sector count */
-    outb(ATA_PRIMARY_IO_BASE + 3, (uint8_t)(block_number & 0xFF));
-    outb(ATA_PRIMARY_IO_BASE + 4, (uint8_t)((block_number >> 8) & 0xFF));
-    outb(ATA_PRIMARY_IO_BASE + 5, (uint8_t)((block_number >> 16) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 3, (uint8_t)(LBA & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 4, (uint8_t)((LBA >> 8) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 5, (uint8_t)((LBA >> 16) & 0xFF));
     outb(ATA_PRIMARY_IO_BASE + 7, 0x30); /* WRITE SECTOR(S) */
 
-    if (ata_wait_drq() != 0) {
-        return -1;
-    }
+    if (ata_wait_drq() != 0) { return -1; }
 
     const uint16_t *src = (const uint16_t *)buf;
     for (int i = 0; i < ATA_SECTOR_SIZE / 2; i++) {
@@ -590,9 +574,7 @@ void emit(char c) {
 
 /* Write a string to VGA text mode */
 void zType(const char *str) {
-    for (int i = 0; str[i] != '\0'; i++) {
-        emit(str[i]);
-    }
+    while (*str != '\0') { emit(*(str++)); }
 }
 
 /* Clear the screen */
