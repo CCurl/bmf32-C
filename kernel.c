@@ -29,8 +29,6 @@ const struct multiboot_header multiboot_header = {
 
 /* VGA text mode constants */
 #define VGA_MEMORY 0xB8000
-#define VGA_COLS   80
-#define VGA_ROWS   25
 #define VGA_COLOR_WHITE_ON_BLACK 0x0F
 
 /* GDT and IDT constants */

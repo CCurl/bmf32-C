@@ -14,6 +14,7 @@
 #define cell             int32_t
 #define ucell           uint32_t
 #define NULL                   0
+#define BCASE              break; case
 
 #define byte             uint8_t
 #define MEM_SZ         16*1024*1024  /* 16MB */
@@ -21,6 +22,8 @@
 #define IMMED               0x80
 #define INLINE              0x40
 #define btwi(n,l,h)   ((l<=n) && (n<=h))
+#define min(x, y)     ((x)<(y)?(x):(y))
+#define max(x, y)     ((x)>(y)?(x):(y))
 #define TOS           dstk[dsp]
 #define NOS           dstk[dsp-1]
 #define L0            lstk[lsp]
@@ -51,9 +54,9 @@ extern void zType(const char *str);
 extern void emit(const char ch);
 extern int  key();
 extern char *strcpy(char *a, const char *b);
-extern void *memcpy(void *dest, const void *src, cell n);
 extern void *memmove(void *dest, const void *src, cell n);
-extern int strlen(const char *a);
-extern int strEqI(const char *a, const char *b);
+extern int  strlen(const char *a);
+extern int  strEqI(const char *a, const char *b);
+extern void edit();
 
 #endif //  __DWC_VM_H__

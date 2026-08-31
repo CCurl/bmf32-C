@@ -6,6 +6,8 @@ extern int shift_pressed;
 extern int ctrl_pressed;
 
 /* VGA cursor position and text color */
+#define VGA_COLS   80
+#define VGA_ROWS   25
 extern int cursor_x;
 extern int cursor_y;
 extern int text_color;

@@ -4,7 +4,6 @@
 #define X1(op, name, code)   op,
 #define X2(op, name, code)   case op: code goto next;
 #define X3(op, name, code)   { name, op },
-#define BCASE                 break; case
 
 #define PRIMS(X) \
 	X(EXIT,   "exit",     pc = (ucell)rpop(); if (pc==0) { return; } ) \
@@ -71,6 +70,7 @@
 	X(TFROM,  "t>",       push(tstk[tsp]); tsp = (tsp-1) & STK_SZ; ) \
 	X(DISKRD, "disk-rd",  t = pop(); n = pop(); ata_read_block(t, (void*)n); ) \
 	X(DISKWT, "disk-wt",  t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
+	X(EDIT,   "edit",     edit(); ) \
 
 enum { PRIMS(X1) LASTOP };
 
