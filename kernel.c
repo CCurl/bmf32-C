@@ -3,9 +3,6 @@
  * A minimal kernel for QEMU that runs pure C code
  */
 
-#include <stddef.h>
-#include <stdint.h>
-#include "kernel.h"
 #include "dwc-vm.h"
 
 /* Multiboot1 Header Definitions */
@@ -32,8 +29,6 @@ const struct multiboot_header multiboot_header = {
 
 /* VGA text mode constants */
 #define VGA_MEMORY 0xB8000
-#define VGA_COLS   80
-#define VGA_ROWS   25
 #define VGA_COLOR_WHITE_ON_BLACK 0x0F
 
 /* GDT and IDT constants */
@@ -45,6 +40,12 @@ const struct multiboot_header multiboot_header = {
 #define PIC_MASTER_DATA 0x21
 #define PIC_SLAVE_CMD 0xA0
 #define PIC_SLAVE_DATA 0xA1
+
+/* ATA/IDE primary channel (PIO mode) */
+#define ATA_PRIMARY_IO_BASE   0x1F0
+#define ATA_PRIMARY_CTRL_BASE 0x3F6
+#define ATA_SECTOR_SIZE      512
+#define ATA_POLL_TIMEOUT     100000
 
 /* ICW initialization command words */
 #define ICW1_ICW4 0x01
@@ -67,8 +68,8 @@ int text_color = VGA_COLOR_WHITE_ON_BLACK;
 /* Keyboard state */
 #define KEYBOARD_BUFFER_SIZE 256
 static char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
-static int keyboard_head = 0;
-static int keyboard_tail = 0;
+int kbd_head = 0;
+int kbd_tail = 0;
 int shift_pressed = 0;
 int ctrl_pressed = 0;
 
@@ -84,6 +85,18 @@ static inline void outb(uint16_t port, uint8_t val) {
 static inline uint8_t inb(uint16_t port) {
     uint8_t ret;
     asm volatile("inb %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
+/* Helper function to write a word to port */
+static inline void outw(uint16_t port, uint16_t val) {
+    asm volatile("outw %0, %1" : : "a"(val), "Nd"(port));
+}
+
+/* Helper function to read a word from port */
+static inline uint16_t inw(uint16_t port) {
+    uint16_t ret;
+    asm volatile("inw %1, %0" : "=a"(ret) : "Nd"(port));
     return ret;
 }
 
@@ -108,7 +121,6 @@ static inline void lidt(void *idt_ptr) {
 }
 
 /* Forward declarations for VGA functions */
-void vga_putchar(char c);
 void vga_set_cursor(int x, int y);
 
 /* GDT Entry */
@@ -273,10 +285,10 @@ void __attribute__((interrupt)) keyboard_handler(void *frame) {
     uint8_t scancode;
     asm volatile("inb $0x60, %0" : "=a"(scancode));
 
-    int next = (keyboard_head + 1) % KEYBOARD_BUFFER_SIZE;
-    if (next != keyboard_tail) {
-        keyboard_buffer[keyboard_head] = (char)scancode;
-        keyboard_head = next;
+    int next = (kbd_head + 1) % KEYBOARD_BUFFER_SIZE;
+    if (next != kbd_tail) {
+        keyboard_buffer[kbd_head] = (char)scancode;
+        kbd_head = next;
     }
 
     asm volatile("outb %0, %1" : : "a"((uint8_t)0x20), "Nd"(PIC_MASTER_CMD));
@@ -356,16 +368,11 @@ void pic_init(void) {
     outb(PIC_MASTER_DATA, mask);
 }
 
-/* Check whether a keypress is waiting in the keyboard buffer. */
-int keyboard_has_input(void) {
-    return (keyboard_head != keyboard_tail) ? 1 : 0;
-}
-
 /* Read character from keyboard buffer (non-blocking) */
 int keyboard_get_char(void) {
-    while (keyboard_head != keyboard_tail) {
-        uint8_t scancode = (uint8_t)keyboard_buffer[keyboard_tail];
-        keyboard_tail = (keyboard_tail + 1) % KEYBOARD_BUFFER_SIZE;
+    while (kbd_head != kbd_tail) {
+        uint8_t scancode = (uint8_t)keyboard_buffer[kbd_tail];
+        kbd_tail = (kbd_tail + 1) % KEYBOARD_BUFFER_SIZE;
 
         if (scancode == 0x2A || scancode == 0x36) {
             shift_pressed = 1;
@@ -415,6 +422,71 @@ void serial_init(void) {
     outb(port + 3, 0x03); /* 8 bits, no parity, 1 stop bit */
     outb(port + 2, 0xC7); /* Enable FIFO */
     outb(port + 4, 0x0B); /* Set DTR and RTS */
+}
+
+/* ATA/IDE PIO helper functions */
+static int ata_wait_bsy(void) {
+    for (int i = 0; i < ATA_POLL_TIMEOUT; i++) {
+        if ((inb(ATA_PRIMARY_IO_BASE + 7) & 0x80) == 0) {
+            return 0;
+        }
+    }
+    return -1;
+}
+
+static int ata_wait_drq(void) {
+    for (int i = 0; i < ATA_POLL_TIMEOUT; i++) {
+        uint8_t status = inb(ATA_PRIMARY_IO_BASE + 7);
+        if (status & 0x08) { return  0; } // DRQ
+        if (status & 0x01) { return -1; } // ERROR
+    }
+    return -1;
+}
+
+/* LBA = “Logical Block Address” */
+int ata_read_block(uint32_t LBA, void *buf) {
+    if (!buf) { return -1; }
+    if (ata_wait_bsy() != 0) { return -1; }
+
+    outb(ATA_PRIMARY_IO_BASE + 6, 0xE0 | ((LBA >> 24) & 0x0F));
+    outb(ATA_PRIMARY_IO_BASE + 2, 1); /* sector count */
+    outb(ATA_PRIMARY_IO_BASE + 3, (uint8_t)(LBA & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 4, (uint8_t)((LBA >> 8) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 5, (uint8_t)((LBA >> 16) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 7, 0x20); /* READ SECTOR(S) */
+
+    if (ata_wait_drq() != 0) { return -1; }
+
+    uint16_t *dst = (uint16_t *)buf;
+    for (int i = 0; i < ATA_SECTOR_SIZE / 2; i++) {
+        dst[i] = inw(ATA_PRIMARY_IO_BASE);
+    }
+
+    return 0;
+}
+
+/* LBA = “Logical Block Address” */
+int ata_write_block(uint32_t LBA, const void *buf) {
+    if (!buf) { return -1; }
+    if (ata_wait_bsy() != 0) { return -1; }
+
+    outb(ATA_PRIMARY_IO_BASE + 6, 0xE0 | ((LBA >> 24) & 0x0F));
+    outb(ATA_PRIMARY_IO_BASE + 2, 1); /* sector count */
+    outb(ATA_PRIMARY_IO_BASE + 3, (uint8_t)(LBA & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 4, (uint8_t)((LBA >> 8) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 5, (uint8_t)((LBA >> 16) & 0xFF));
+    outb(ATA_PRIMARY_IO_BASE + 7, 0x30); /* WRITE SECTOR(S) */
+
+    if (ata_wait_drq() != 0) { return -1; }
+
+    const uint16_t *src = (const uint16_t *)buf;
+    for (int i = 0; i < ATA_SECTOR_SIZE / 2; i++) {
+        outw(ATA_PRIMARY_IO_BASE, src[i]);
+    }
+
+    /* Flush the write pipeline */
+    inb(ATA_PRIMARY_IO_BASE + 7);
+    return 0;
 }
 
 /* Write a character to serial port */
@@ -500,9 +572,7 @@ void emit(char c) {
 
 /* Write a string to VGA text mode */
 void zType(const char *str) {
-    for (int i = 0; str[i] != '\0'; i++) {
-        emit(str[i]);
-    }
+    while (*str != '\0') { emit(*(str++)); }
 }
 
 /* Clear the screen */

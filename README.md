@@ -149,7 +149,7 @@ The kernel implements:
 
 ### dwc-vm.c and dwc-vm.h
 
-This is the Forth-like VM used by the project. It includes:
+This is the Forth VM used by the project. It includes:
 
 - A dictionary and primitive table
 - stack operations and compiled words
@@ -164,11 +164,20 @@ This file provides the minimal runtime glue needed for a freestanding build, inc
 - Keyboard and timer wrappers used by the VM
 - `emit` / `ztype` output support
 
+### Raw disk / block device
+
+The kernel includes a raw ATA/IDE block interface at the hardware boundary. The public API is:
+
+- `int ata_read_block(uint32_t block_number, void *buf);`
+- `int ata_write_block(uint32_t block_number, const void *buf);`
+
+This is a simple 512-byte sector API. The block number is a zero-based sector index, and the buffer must be at least 512 bytes. There is no filesystem layer in this driver; it is intentionally a low-level device primitive for higher-level Forth code to build on top of.
+
 ### linker.ld
 
 Defines the memory layout:
 
-- Code starts at `0x100000` (1 MB)
+- The Kernel code starts at `0x100000` (1 MB)
 - A flat single-segment kernel image is used
 
 ## Important notes

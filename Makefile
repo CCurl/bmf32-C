@@ -23,6 +23,8 @@ KERNEL_BIN = $(BUILD_DIR)/kernel.bin
 ISO_IMAGE = $(BUILD_DIR)/os.iso
 OS_SUPPORT_OBJ = $(BUILD_DIR)/os.o
 DWC_VM_OBJ = $(BUILD_DIR)/dwc-vm.o
+EDITOR_OBJ = $(BUILD_DIR)/editor.o
+DISK_IMAGE = $(BUILD_DIR)/disk.img
 
 # Default target
 all: $(KERNEL)
@@ -47,9 +49,13 @@ $(OS_SUPPORT_OBJ): os.c boot.h | $(BUILD_DIR)
 $(DWC_VM_OBJ): dwc-vm.c dwc-vm.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) dwc-vm.c -o $(DWC_VM_OBJ)
 
+# Compile the editor
+$(EDITOR_OBJ): editor.c dwc-vm.h | $(BUILD_DIR)
+	$(CC) $(CFLAGS) editor.c -o $(EDITOR_OBJ)
+
 # Link kernel
-$(KERNEL): $(BUILD_DIR)/kernel.o $(OS_SUPPORT_OBJ) $(DWC_VM_OBJ) *.[ch]
-	$(LD) $(LDFLAGS) -o $(KERNEL) $(BUILD_DIR)/kernel.o $(OS_SUPPORT_OBJ) $(DWC_VM_OBJ)
+$(KERNEL): $(BUILD_DIR)/kernel.o $(OS_SUPPORT_OBJ) $(DWC_VM_OBJ) $(EDITOR_OBJ) *.[ch]
+	$(LD) $(LDFLAGS) -o $(KERNEL) $(BUILD_DIR)/kernel.o $(OS_SUPPORT_OBJ) $(DWC_VM_OBJ) $(EDITOR_OBJ)
 
 # Create bootable ISO image
 iso: $(KERNEL)
@@ -61,8 +67,11 @@ iso: $(KERNEL)
 	$(GRUB_MKRESCUE) -o $(ISO_IMAGE) $(ISODIR)
 
 # Run on QEMU
-run: $(KERNEL)
-	$(QEMU) -kernel $(KERNEL) -m 20M -serial stdio -d guest_errors
+$(DISK_IMAGE): | $(BUILD_DIR)
+	dd if=/dev/zero of=$(DISK_IMAGE) bs=1M count=1
+
+run: $(KERNEL) $(DISK_IMAGE)
+	$(QEMU) -kernel $(KERNEL) -drive file=$(DISK_IMAGE),if=ide,format=raw,media=disk -m 20M -serial stdio
 
 # Run from ISO
 run-iso: iso

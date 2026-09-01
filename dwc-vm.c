@@ -4,7 +4,6 @@
 #define X1(op, name, code)   op,
 #define X2(op, name, code)   case op: code goto next;
 #define X3(op, name, code)   { name, op },
-#define BCASE                 break; case
 
 #define PRIMS(X) \
 	X(EXIT,   "exit",     pc = (ucell)rpop(); if (pc==0) { return; } ) \
@@ -43,11 +42,10 @@
 	X(SUB,    "-",        t = pop(); TOS -= t; ) \
 	X(SLMOD,  "/mod",     t = TOS; n = NOS; TOS = n/t; NOS = n%t; ) \
 	X(INC,    "1+",       TOS += 1; ) \
-	X(DEC,    "1-",       TOS -= 1; ) \
-	X(LT,     "<",        t = pop(); TOS = (TOS  < t) ? 1 : 0; ) \
-	X(EQ,     "=",        t = pop(); TOS = (TOS == t) ? 1 : 0; ) \
-	X(GT,     ">",        t = pop(); TOS = (TOS  > t) ? 1 : 0; ) \
-	X(EQ0,    "0=",       TOS = (TOS == 0) ? 1 : 0; ) \
+	X(LT,     "<",        t = pop(); TOS = (TOS  < t) ? -1 : 0; ) \
+	X(EQ,     "=",        t = pop(); TOS = (TOS == t) ? -1 : 0; ) \
+	X(GT,     ">",        t = pop(); TOS = (TOS  > t) ? -1 : 0; ) \
+	X(EQ0,    "0=",       TOS = (TOS == 0) ? -1 : 0; ) \
 	X(MIN,    "min",      t = pop(); TOS = (TOS < t) ? TOS : t; ) \
 	X(MAX,    "max",      t = pop(); TOS = (TOS > t) ? TOS : t; ) \
 	X(PLSTO,  "+!",       t = pop(); n = pop(); *(cell *)t += n; ) \
@@ -59,7 +57,6 @@
 	X(XOR,    "xor",      t = pop(); TOS ^= t; ) \
 	X(FIND,   "find",     push((cell)findInDict((char *)0)); ) \
 	X(KEY,    "key",      push(key()); ) \
-	X(QKEY,   "key?",     push(keyboard_has_input()); ) \
 	X(EMIT,   "emit",     emit((char)pop()); ) \
 	X(ADDW,   "add-word", addToDict(0); ) \
 	X(OUTER,  "outer",    t = pop(); outer((char*)t); ) \
@@ -67,18 +64,20 @@
 	X(SLEN,   "s-len",    TOS = strlen((char*)TOS); ) \
 	X(NWB,    ".nwb",     t=pop(); n=pop(); iToA(pop(), t, n); ) \
 	X(SEE,    "see",      doSee(); ) \
-	X(TTO,    ">t",       tsp = (tsp+1) & STK_SZ; tstk[tsp] = pop(); ) \
-	X(TAT,    "t@",       push(tstk[tsp]); ) \
-	X(TSTO,   "t!",       tstk[tsp] = pop(); ) \
-	X(TFROM,  "t>",       push(tstk[tsp]); tsp = (tsp-1) & STK_SZ; ) \
+	X(DISKRD, "disk-rd",  t = pop(); n = pop(); ata_read_block(t, (void*)n); ) \
+	X(DISKWT, "disk-wt",  t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
+	X(TOXY,   "->xy",     cursor_y = pop(); cursor_x = pop(); vga_set_cursor(cursor_x, cursor_y); ) \
+	X(WFET,   "w@",       TOS = *(uint16_t *)TOS; ) \
+	X(WSTO,   "w!",       t = pop(); n = pop(); *(uint16_t *)t = (uint16_t)n; ) \
+	X(EDIT,   "edit",     edit(); ) \
 
 enum { PRIMS(X1) LASTOP };
 
 char mem[MEM_SZ], *toIn, wd[32];
-ucell *code=(ucell*)&mem[0], dsp, rsp, lsp, tsp, xsp;
-cell dstk[STK_SZ+1], rstk[STK_SZ+1], lstk[STK_SZ+1], tstk[STK_SZ+1], xstk[STK_SZ+1];
-cell here=LASTOP, last=(cell)&mem[MEM_SZ], base=10, state=INTERPRET;
-DE_T tmpWords[10];
+ucell *code=(ucell*)&mem[0], dsp, rsp, lsp, xsp;
+cell dstk[STK_SZ+1], rstk[STK_SZ+1], lstk[STK_SZ+1], xstk[STK_SZ+1];
+cell here=LASTOP, base=10, state=INTERPRET;
+DE_T tmpWords[10], *last=(DE_T*)&mem[MEM_SZ];
 
 void push(cell v) { if (dsp < STK_SZ) { dstk[++dsp] = v; } }
 cell pop() { return (0 < dsp) ? dstk[dsp--] : 0; }
@@ -127,14 +126,14 @@ int isNum(const char *w, cell b) {
 
 DE_T *addToDict(char *w) {
 	w = checkWord(w); if (!w) { return (DE_T*)0; }
-	DE_T *dp = (DE_T*)last;
+	DE_T *dp = last;
 	if (isTmpW(w)) { dp = &tmpWords[w[1]-'0']; dp->xt = here; return dp; }
 	int ln = (int)strlen(w);
 	if (NAME_SZ <= ln) { ln = NAME_SZ-1; w[ln] = 0; }
 	if (ln == 0) { return (DE_T*)0; }
 	*(--dp) = (DE_T){ (ucell)here, 0, ln };
 	strcpy(dp->nm, w);
-	last = (cell)dp;
+	last = dp;
 	return dp;
 }
 
@@ -142,17 +141,18 @@ DE_T *findInDict(char *w) {
 	w = checkWord(w); if (!w) { return (DE_T*)0; }
 	if (isTmpW(w)) { return &tmpWords[w[1]-'0']; }
 	int ln = (int)strlen(w);
-	for (DE_T *dp=(DE_T*)last; dp<(DE_T*)&mem[MEM_SZ]; dp++) {
+	for (DE_T *dp=last; dp<(DE_T*)&mem[MEM_SZ]; dp++) {
 		if ((dp->ln == ln) && strEqI(dp->nm, w)) { return dp; }
 	}
 	return (DE_T *)0;
 }
 
 void iToA(cell n, cell b, cell w) {
+	b = (b>1) ? b : 10;
 	if ((n < 0) && (b == 10)) { emit('-'); n = -n; }
-	char *p = (char*)&mem[last-256]; *p = 0;
+	char *p = ((char*)(last))-256; *p = 0;
 	do {
-		cell d = n % b; n /= b;
+		int d = n % b; n /= b;
 		*(--p) = btwi(d,0,9) ? '0'+d : 'A'+(d-10);
 		--w;
 	} while (n);
@@ -174,7 +174,7 @@ void doSee() {
 	if (!dp) { zType("-nf-"); return; }
 	if (dp->xt <= LASTOP) { zTypeStrNum("primitive: ", dp->xt, 10, 0); return; }
 	cell x = (cell)dp;
-	cell i = dp->xt, stop = ((DE_T*)last < dp) ? (cell)(dp-1)->xt : here;
+	cell i = dp->xt, stop = (last < dp) ? (cell)(dp-1)->xt : here;
 	zTypeStrNum("\r\n", x, 10, 0); zType(": ");
 	zType(dp->nm); zTypeStrNum(" (", dp->xt, 10, 4);
 	zTypeStrNum(" to ", stop-1, 10, 4); emit(')');
@@ -202,17 +202,19 @@ void fType(char *str) {
 		if (c== '\\') {
 			c = *(str++);
 			switch (c) {
-				case  'b': emit('\b');
-				BCASE 'n': emit('\n');
-				BCASE 'r': emit('\r');
-				BCASE 't': emit('\t');
+				case  'b': emit( 8);
+				BCASE 'e': emit(27);
+				BCASE 'n': emit(10);
+				BCASE 'r': emit(13);
+				BCASE 't': emit( 9);
 			default:
-				emit(c);
-			}
+			emit(c);
+		}
 		} else if (c== '%') {
 			c = *(str++);
 			switch (c) {
 				case  'b': iToA(pop(), 2, 0);
+				BCASE 'c': emit(pop());
 				BCASE 'd': iToA(pop(), 10, 0);
 				BCASE 'i': iToA(pop(), base, 0);
 				BCASE 'q': emit('"');
@@ -262,11 +264,11 @@ void dwcInit() {
 	NVP_T nv[] = {
 		{ "version",  VERSION },          { "text-color", (cell)&text_color },
 		{ "cursor-x", (cell)&cursor_x },  { "cursor-y",   (cell)&cursor_y },
+		{ "kbd-head", (cell)&kbd_head },  { "kbd-tail",   (cell)&kbd_tail },
 		{ "(ticks)",  (cell)&sys_ticks },
 		{ "(h)",      (cell)&here },      { "(l)",        (cell)&last },
 		{ "(lsp)",    (cell)&lsp },       { "lstk",       (cell)&lstk[0] },
 		{ "(rsp)",    (cell)&rsp },       { "rstk",       (cell)&rstk[0] },
-		{ "(tsp)",    (cell)&tsp },       { "tstk",       (cell)&tstk[0] },
 		{ "(xsp)",    (cell)&xsp },       { "xstk",       (cell)&xstk[0] },
 		{ "(sp)",     (cell)&dsp },       { "stk",        (cell)&dstk[0] },
 		{ "state",    (cell)&state },     { "base",       (cell)&base },

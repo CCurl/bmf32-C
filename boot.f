@@ -4,10 +4,11 @@
 : inline    ( -- ) $40 last cell + c! ;
 : immediate ( -- ) $80 last cell + c! ;
 : cells  ( n--n' ) cell * ; inline
+: cell+  ( a--a1 ) cell + ; inline
 : ->code ( off--addr ) cells mem + ;
 : code@  ( off--dw )  ->code @ ;
 : code!  ( dw off-- ) ->code ! ;
-: , ( dw-- ) here dup 1 + (h) ! code! ;
+: , ( dw-- ) here dup 1+ (h) ! code! ;
 
 : (exit)   ( --n )  0 ; inline
 : (lit)    ( --n )  1 ; inline
@@ -47,8 +48,9 @@ vars (vh) !
 : allot ( n-- ) (vh) +! ;
 : var   ( n-- ) vhere const allot ;
 : variable   ( -- ) cell const allot ;
+: 1- 1 - ; inline
 
-( 3 built-in variables : x,y,z )
+( variables x,y,z are built-in )
 : +L1 ( x -- )    +L x! ;
 : +L2 ( x y-- )   +L y! x! ;
 : +L3 ( x y z-- ) +L z! y! x! ;
@@ -64,6 +66,14 @@ vars (vh) !
 : z++ ( -- )  z@+ drop ;  : z--  ( -- )  z@ 1- z! ;  : z@-  ( --n ) z@ z-- ;
 : c@z ( --b ) z@ c@ ;     : c@z+ ( --b ) z@+ c@ ;    : c@z- ( --b ) z@- c@ ;
 : c!z ( b-- ) z@ c! ;     : c!z+ ( b-- ) z@+ c! ;    : c!z- ( b-- ) z@- c! ;
+
+( Temporary stack )
+32 cells var tstk
+val tsp  (val) (tsp)
+: t! ( n-- ) tsp cells tstk + ! ;
+: t@ ( --n ) tsp cells tstk + @ ;
+: >t ( n-- ) tsp 1+ 31 and (tsp) ! t! ;
+: t> ( --n ) t@ tsp 1- 31 and (tsp) ! ;
 
 ( Strings )
 : compiling? ( --n ) state @ 1 = ;
@@ -93,16 +103,20 @@ vars (vh) !
 : timer ( --n ) (ticks) @ ;
 : ms ( n-- ) timer + >r begin timer r@ > until rdrop ;
 : 2+    ( n--n' )        1+ 1+ ; inline
+: 2*    ( n--n' )        dup + ; inline
 : 2dup  ( a b--a b a b ) over over ; inline
 : 2drop ( a b-- )        drop drop ; inline
 : -rot ( a b c--c a b )  swap >r swap r> ;
-: cell+ ( a--a1 ) cell + ; inline
-: 0< ( n--f ) 0 <    ; inline
-: <= ( a b--f ) > 0= ;
-: >= ( a b--f ) < 0= ;
+: 0< ( n--f )   0 <  ; inline
+: <= ( a b--f ) > 0= ; inline
+: >= ( a b--f ) < 0= ; inline
+: <> ( a b--f ) = 0= ; inline
 : type ( a n-- ) for dup c@ emit 1+ next drop ;
-: btwi ( n l h--f ) >r over <= swap r> <= and ;
-: negate ( n--n' ) 0 swap - ;
+: btwi ( n l h--f ) >t over <= swap t> <= and ;
+: key? ( --f )  kbd-head @ kbd-tail @ <> ;
+: ascii? ( c--f )  32 127 btwi ;
+: com    ( n--n' ) -1 xor ;
+: negate ( n--n' ) com 1+ ;
 : abs ( n--n1 ) dup 0< if negate then ;
 : cr  ( -- )     13 emit 10 emit ;
 : tab ( -- )      9 emit ;
@@ -123,8 +137,8 @@ cell var (buf)
 : ?neg ( n--n' ) dup 0< dup (neg) c! if negate then ;
 : hold ( c-- )   -1 (buf) +! (buf) @ c! ;
 : #.   ( -- )    '.' hold ;
-: #n   ( n-- )   '0' + dup '9' > if 7 + then hold ;
-: #    ( n--m )  base @ /mod swap #n ;
+: #n   ( r-- )   '0' + dup '9' > if 7 + then hold ;
+: #    ( n--q )  base @ /mod swap #n ;
 : #s   ( n--0 )  # -if #s exit then ;
 : <#   ( n--n' ) ?neg buf 65 + (buf) ! 0 hold ;
 : #>   ( n--a )  drop (neg) @ if '-' hold then (buf) @ ;
@@ -156,12 +170,12 @@ cell var (buf)
     next -L ;
 
 : accept ( addr sz -- len )
-    +L >r y! 0 z!
+    >t +L y! 0 z!
     begin
         key x!
-        x@ 10 = if 0 c!y z@ -L exit then
-        x@ 32 127 btwi if rdrop x@ c!y+ z++ x@ emit then
-        x@ 8 = z@ 0 > and if y-- z-- .f" \b \b" then
+        x@ 10 = if tdrop 0 c!y z@ -L exit then
+        x@ ascii? if x@ c!y+ z++ x@ emit then
+        x@ 8 = z@ and if y-- z-- .f" \b \b" then
     again
 ;
 
@@ -176,6 +190,7 @@ cell var t4   cell var t5   cell var t6
 ( Strings / Memory )
 : pad    ( --a ) vhere $100 + ;
 : fill   ( a num ch-- ) -rot for 2dup c! 1+ next 2drop ;
+: wfill  ( a num w-- )  -rot for 2dup w! 2+ next 2drop ;
 : s-end  ( str--end ) dup s-len + ;   ( end: address of the null )
 : s-cpy  ( dst src--dst ) 2dup s-len 1+ cmove ;
 : s-cat  ( dst src--dst ) over s-end  over s-len 1+  cmove ;
@@ -185,7 +200,7 @@ cell var t4   cell var t5   cell var t6
 : s-eqn  ( s1 s2 n--f ) +L3 z@ for c@x+ c@y+ = if0 -L 0 unloop exit then next -L 1 ;
 : s-eq   ( s1 s2--f ) dup s-len 1+ s-eqn ;
 
-: .c ( c-- ) dup 32 127 btwi if emit exit then drop ." ." ;
+: .c ( c-- ) dup ascii? if emit exit then drop ." ." ;
 : t1 ( addr-- ) $10 for dup c@ .c 1+ next drop ;
 : dump ( addr num-- ) 0 +L3
     y@ for
@@ -195,10 +210,20 @@ cell var t4   cell var t5   cell var t6
         z@ $10 = if x@ $10 - t1 0 z! then
     next -L ;
 
-: vga $B8000 ;
+: vga ( --a ) $B8000 ;
+: cls ( -- ) vga 2000 $0F20 wfill  0 0 ->xy ;
 
 ( test / temp )
-: bm ( mb -- ) mb timer swap for next timer swap - . ;
+: bm ( mb -- ) 1000 dup * * timer swap for next timer swap - . ;
+
+( Disk blocks are 512 bytes )
+( Forth blocks are 1024 bytes )
+: blk-rd ( addr blk-- ) 2* 2dup disk-rd 1+ >t 512 + t> disk-rd ;
+: blk-wt ( addr blk-- ) 2* 2dup disk-wt 1+ >t 512 + t> disk-wt ;
+
+: read-all ( -- ) 3 mb 24 for
+        dup i blk-rd 1 kb +
+    next drop ;
 
 : .version ( -- ) version <# # # #. # # #. # # #s #> ztype ;
 : .si ." bmf32-C v" .version .f" \n\nhttps://github.com/CCurl/bmf32-C" ;
