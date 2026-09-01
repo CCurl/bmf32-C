@@ -252,8 +252,12 @@ cell var block
         x@ 10 = if  cy 1+ cy! 0 cx! ed->xy then
         x@ 31 > x@ 127 < and if x@ ed-pos c! x@ emit ed-x! then
     again ;
-: ed-ins ( -- ) 'i' emit ; ( todo )
-: ed-del ( -- ) 'x' emit ; ( todo )
+: ed-ins ( -- ) ed-pos ed-blk 1023 + +L2 y@- z!
+    begin c@y- c!z- y@ x@ < until
+    32 c!z -L ed-show ;
+: ed-del ( -- ) +L ed-pos x! ed-blk 1023 + y!
+    begin x@ 1+ c@ c!x+ x@ y@ < while
+    32 c!x -L ed-show ;
 : ed-go ( -- )
     x@ 'h' = if -1  0 ed-mv exit then
     x@ 'j' = if  0  1 ed-mv exit then
