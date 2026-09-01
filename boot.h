@@ -210,9 +210,8 @@ cell var t4   cell var t5   cell var t6 \
         z@ $10 = if x@ $10 - t1 0 z! then \
     next -L ; \
  \
-: vga $B8000 ; \
-: cls vga 2000 $0F20 wfill  0 0 ->xy ; \
- \
+: vga ( --a ) $B8000 ; \
+: cls ( -- ) vga 2000 $0F20 wfill  0 0 ->xy ; \
  \
 ( test / temp ) \
 : bm ( mb -- ) 1000 dup * * timer swap for next timer swap - . ; \
