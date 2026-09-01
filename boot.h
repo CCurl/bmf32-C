@@ -67,6 +67,14 @@ vars (vh) ! \
 : c@z ( --b ) z@ c@ ;     : c@z+ ( --b ) z@+ c@ ;    : c@z- ( --b ) z@- c@ ; \
 : c!z ( b-- ) z@ c! ;     : c!z+ ( b-- ) z@+ c! ;    : c!z- ( b-- ) z@- c! ; \
  \
+( Temporary stack ) \
+32 cells var tstk \
+val tsp  (val) (tsp) \
+: t! ( n-- ) tsp cells tstk + ! ; \
+: t@ ( --n ) tsp cells tstk + @ ; \
+: >t ( n-- ) tsp 1+ 31 and (tsp) ! t! ; \
+: t> ( --n ) t@ tsp 1- 31 and (tsp) ! ; \
+ \
 ( Strings ) \
 : compiling? ( --n ) state @ 1 = ; \
 : (\") ( --a ) +L vhere dup z! x! 1 >in +! \
@@ -182,6 +190,7 @@ cell var t4   cell var t5   cell var t6 \
 ( Strings / Memory ) \
 : pad    ( --a ) vhere $100 + ; \
 : fill   ( a num ch-- ) -rot for 2dup c! 1+ next 2drop ; \
+: wfill  ( a num w-- )  -rot for 2dup w! 2+ next 2drop ; \
 : s-end  ( str--end ) dup s-len + ;   ( end: address of the null ) \
 : s-cpy  ( dst src--dst ) 2dup s-len 1+ cmove ; \
 : s-cat  ( dst src--dst ) over s-end  over s-len 1+  cmove ; \
@@ -202,6 +211,8 @@ cell var t4   cell var t5   cell var t6 \
     next -L ; \
  \
 : vga $B8000 ; \
+: cls vga 2000 $0F20 wfill  0 0 ->xy ; \
+ \
  \
 ( test / temp ) \
 : bm ( mb -- ) 1000 dup * * timer swap for next timer swap - . ; \

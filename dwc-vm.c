@@ -64,19 +64,18 @@
 	X(SLEN,   "s-len",    TOS = strlen((char*)TOS); ) \
 	X(NWB,    ".nwb",     t=pop(); n=pop(); iToA(pop(), t, n); ) \
 	X(SEE,    "see",      doSee(); ) \
-	X(TTO,    ">t",       tsp = (tsp+1) & STK_SZ; tstk[tsp] = pop(); ) \
-	X(TAT,    "t@",       push(tstk[tsp]); ) \
-	X(TSTO,   "t!",       tstk[tsp] = pop(); ) \
-	X(TFROM,  "t>",       push(tstk[tsp]); tsp = (tsp-1) & STK_SZ; ) \
 	X(DISKRD, "disk-rd",  t = pop(); n = pop(); ata_read_block(t, (void*)n); ) \
 	X(DISKWT, "disk-wt",  t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
+	X(TOXY,   "->xy",     cursor_y = pop(); cursor_x = pop(); vga_set_cursor(cursor_x, cursor_y); ) \
+	X(WFET,   "w@",       TOS = *(uint16_t *)TOS; ) \
+	X(WSTO,   "w!",       t = pop(); n = pop(); *(uint16_t *)t = (uint16_t)n; ) \
 	X(EDIT,   "edit",     edit(); ) \
 
 enum { PRIMS(X1) LASTOP };
 
 char mem[MEM_SZ], *toIn, wd[32];
-ucell *code=(ucell*)&mem[0], dsp, rsp, lsp, tsp, xsp;
-cell dstk[STK_SZ+1], rstk[STK_SZ+1], lstk[STK_SZ+1], tstk[STK_SZ+1], xstk[STK_SZ+1];
+ucell *code=(ucell*)&mem[0], dsp, rsp, lsp, xsp;
+cell dstk[STK_SZ+1], rstk[STK_SZ+1], lstk[STK_SZ+1], xstk[STK_SZ+1];
 cell here=LASTOP, base=10, state=INTERPRET;
 DE_T tmpWords[10], *last=(DE_T*)&mem[MEM_SZ];
 
@@ -270,7 +269,6 @@ void dwcInit() {
 		{ "(h)",      (cell)&here },      { "(l)",        (cell)&last },
 		{ "(lsp)",    (cell)&lsp },       { "lstk",       (cell)&lstk[0] },
 		{ "(rsp)",    (cell)&rsp },       { "rstk",       (cell)&rstk[0] },
-		{ "(tsp)",    (cell)&tsp },       { "tstk",       (cell)&tstk[0] },
 		{ "(xsp)",    (cell)&xsp },       { "xstk",       (cell)&xstk[0] },
 		{ "(sp)",     (cell)&dsp },       { "stk",        (cell)&dstk[0] },
 		{ "state",    (cell)&state },     { "base",       (cell)&base },
