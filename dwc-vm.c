@@ -10,9 +10,9 @@
 	X(LIT,    "",         push(code[pc++]); ) \
 	X(JMP,    "",         pc = code[pc]; ) \
 	X(JMPZ,   "",         if (pop()==0) { pc = code[pc]; } else { pc++; } ) \
-	X(JMPNZ,  "",         if (pop()) { pc = code[pc]; } else { pc++; } ) \
+	X(JMPNZ,  "",         if (pop()!=0) { pc = code[pc]; } else { pc++; } ) \
 	X(NJMPZ,  "",         if (TOS==0) { pc = code[pc]; } else { pc++; } ) \
-	X(NJMPNZ, "",         if (TOS) { pc = code[pc]; } else { pc++; } ) \
+	X(NJMPNZ, "",         if (TOS!=0) { pc = code[pc]; } else { pc++; } ) \
 	X(ZTYPE,  "ztype",    zType((const char*)pop()); ) \
 	X(FTYPE,  "ftype",    fType((char *)pop()); ) \
 	X(DUP,    "dup",      push(TOS); ) \
@@ -125,15 +125,15 @@ int isNum(const char *w, cell b) {
 
 DE_T *addToDict(char *w) {
 	w = checkWord(w); if (!w) { return (DE_T*)0; }
-	DE_T *dp = last;
+	DE_T *dp = last-1;
 	if (isTmpW(w)) { dp = &tmpWords[w[1]-'0']; dp->xt = here; return dp; }
 	int ln = (int)strlen(w);
 	if (NAME_SZ <= ln) { ln = NAME_SZ-1; w[ln] = 0; }
 	if (ln == 0) { return (DE_T*)0; }
-	*(--dp) = (DE_T){ (ucell)here, 0, ln };
+	*dp = (DE_T){ (ucell)here, 0, ln };
 	strcpy(dp->nm, w);
 	last = dp;
-	return dp;
+	return last;
 }
 
 DE_T *findInDict(char *w) {
