@@ -152,7 +152,7 @@ void iToA(cell n, cell b, cell w) {
 	char *p = ((char*)(last))-256; *p = 0;
 	do {
 		int d = n % b; n /= b;
-		*(--p) = btwi(d,0,9) ? '0'+d : 'A'+(d-10);
+		*(--p) = btwi(d, 0, 9) ? '0'+d : '7'+d;
 		--w;
 	} while (n);
 	while (w > 0) { *(--p) = '0'; --w; }
