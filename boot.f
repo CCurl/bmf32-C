@@ -227,17 +227,16 @@ cell var block
 ( Editor )
 1 kb var ed-blk
 16 const rows       64 const cols
-1 var isShow        : ed-show? isShow c@ ;
+1 var isShow
 : cx ( -- x ) cursor-x @ ;  : cx! cursor-x ! ;
 : cy ( -- y ) cursor-y @ ;  : cy! cursor-y ! ;
 : ed-pos ( --pos ) cy cols * cx + ed-blk + ;
-: ed-show ( -- ) cx cy ed-blk +L3
-    0 0 ->xy   0 isShow c!
+: ?ed-show ( -- ) isShow c@ if0 exit then
+    cx cy ed-blk +L3  0 0 ->xy  0 isShow c!
     rows for
-        cols for 
-            c@z+ emit
-        next cr
-    next x@ y@ ->xy  -L ;
+      cols for  c@z+ emit  next cr
+    next  x@ y@ ->xy  -L ;
+: ed-show! ( -- ) 1 isShow c! ?ed-show ;
 : ed-clr ( -- ) cy cy  0 rows ->xy  60 spaces  ->xy ;
 : ed-msg ( addr-- ) >t  cx cy  0 rows ->xy  t> ztype  ->xy ;
 : ed-x! ( -- )  cx 0 max cols 1- min cx! ;
@@ -247,33 +246,42 @@ cell var block
 : ed-rd ( -- ) ed-blk block @ blk-rd ;
 : ed-wt ( -- ) ed-blk block @ blk-wt ;
 : ed-repl ( -- ) z" -replace-" ed-msg begin
-        key x! 
-        x@ 27 = if ed-clr exit then ( ESC => exit )
-        x@ 10 = if  cy 1+ cy! 0 cx! ed->xy then
-        x@ 31 > x@ 127 < and if x@ ed-pos c! x@ emit ed-x! then
+      key x! 
+      x@ 27 = if ed-clr exit then ( ESC => exit )
+      x@ 10 = if  cy 1+ cy! 0 cx! ed->xy then
+      x@ 31 > x@ 127 < and if x@ ed-pos c! x@ emit ed-x! then
     again ;
-: ed-ins ( -- ) ed-pos ed-blk 1023 + +L2 y@- z!
+: ed-ins-eob ( -- ) ed-pos ed-blk 1023 + +L2 y@- z!
     begin c@y- c!z- y@ x@ < until
-    32 c!z -L ed-show ;
-: ed-del ( -- ) +L ed-pos x! ed-blk 1023 + y!
+    32 c!z -L ed-show! ;
+: ed-ins-eol ( -- ) +L ed-pos x!
+    cy 1+ cols * ed-blk + 1- y! y@- z!
+    begin c@y- c!z- y@ x@ < until
+    32 c!x -L ed-show! ;
+: ed-del-eob ( -- ) +L ed-pos x! ed-blk 1023 + y!
     begin x@ 1+ c@ c!x+ x@ y@ < while
-    32 c!x -L ed-show ;
+    32 c!x -L ed-show! ;
+: ed-del-eol ( -- ) +L ed-pos x! cy 1+ cols * ed-blk + 1- y!
+    begin x@ 1+ c@ c!x+ x@ y@ < while
+    32 c!x -L ed-show! ;
 : ed-go ( -- )
     x@ 'h' = if -1  0 ed-mv exit then
     x@ 'j' = if  0  1 ed-mv exit then
     x@ 'k' = if  0 -1 ed-mv exit then
     x@ 'l' = if  1  0 ed-mv exit then
-    x@  10 = if  cy 1+ cy! 0 cx! ed->xy exit then
-    x@ 'i' = if ed-ins exit then
-    x@ 'x' = if ed-del exit then
+    x@  32 = if  1  0 ed-mv exit then
+    x@ 'I' = if ed-ins-eob exit then
+    x@ 'i' = if ed-ins-eol exit then
     x@ 'R' = if ed-repl exit then
+    x@ 'x' = if ed-del-eol exit then
+    x@ 'X' = if ed-del-eob exit then
+    x@  10 = if  cy 1+ cy! 0 cx! ed->xy exit then
     x@  19 = if ed-wt z" -saved-" ed-msg 500 ms ed-clr exit then
     ;
 : doEd ( n-- ) block ! cls  ed-rd  1 isShow c!
-    begin ed-show? if ed-show then
-        key x! 
-        x@ 17 = if 0 rows ->xy exit then ( ctrl-q => exit )
-        ed-go
+    begin ?ed-show key x! 
+      x@ 17 = if 0 rows ->xy exit then ( ctrl-q => exit )
+      ed-go
     again ;
 : ed block @ doEd ;
 

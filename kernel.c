@@ -120,8 +120,6 @@ static inline void lidt(void *idt_ptr) {
     asm volatile("lidt (%0)" : : "r"(idt_ptr));
 }
 
-/* Forward declarations for VGA functions */
-void vga_set_cursor(int x, int y);
 
 /* GDT Entry */
 struct gdt_entry {
@@ -412,17 +410,37 @@ int keyboard_get_char(void) {
 }
 
 /* Initialize serial port for debugging */
-void serial_init(void) {
-    uint16_t port = 0x3F8; /* COM1 */
-    
-    outb(port + 1, 0x00); /* Disable interrupts */
-    outb(port + 3, 0x80); /* Enable divisor latch */
-    outb(port + 0, 0x01); /* Set divisor to 1 (115200 baud) */
-    outb(port + 1, 0x00);
-    outb(port + 3, 0x03); /* 8 bits, no parity, 1 stop bit */
-    outb(port + 2, 0xC7); /* Enable FIFO */
-    outb(port + 4, 0x0B); /* Set DTR and RTS */
-}
+// void serial_init(void) {
+//     uint16_t port = 0x3F8; /* COM1 */
+//     
+//     outb(port + 1, 0x00); /* Disable interrupts */
+//     outb(port + 3, 0x80); /* Enable divisor latch */
+//     outb(port + 0, 0x01); /* Set divisor to 1 (115200 baud) */
+//     outb(port + 1, 0x00);
+//     outb(port + 3, 0x03); /* 8 bits, no parity, 1 stop bit */
+//     outb(port + 2, 0xC7); /* Enable FIFO */
+//     outb(port + 4, 0x0B); /* Set DTR and RTS */
+// }
+// 
+/* Write a character to serial port */
+// void serial_emit(char c) {
+//     uint16_t port = 0x3F8; /* COM1 */
+//     
+//     /* Wait for transmit buffer to be empty */
+//     while ((inb(port + 5) & 0x20) == 0);
+//     
+//     outb(port, c);
+// }
+
+/* Write a string to serial port */
+// void serial_zType(const char *str) {
+//     for (int i = 0; str[i] != '\0'; i++) {
+//         serial_emit(str[i]);
+//         if (str[i] == '\n') {
+//             serial_emit('\r');
+//         }
+//     }
+// }
 
 /* ATA/IDE PIO helper functions */
 static int ata_wait_bsy(void) {
@@ -489,35 +507,21 @@ int ata_write_block(uint32_t LBA, const void *buf) {
     return 0;
 }
 
-/* Write a character to serial port */
-// void serial_emit(char c) {
-//     uint16_t port = 0x3F8; /* COM1 */
-//     
-//     /* Wait for transmit buffer to be empty */
-//     while ((inb(port + 5) & 0x20) == 0);
-//     
-//     outb(port, c);
-// }
-
-/* Write a string to serial port */
-// void serial_zType(const char *str) {
-//     for (int i = 0; str[i] != '\0'; i++) {
-//         serial_emit(str[i]);
-//         if (str[i] == '\n') {
-//             serial_emit('\r');
-//         }
-//     }
-// }
-
 /* Set cursor position in VGA text mode */
-void vga_set_cursor(int x, int y) {
-    uint16_t pos = y * VGA_COLS + x;
+void vga_set_cursor() {
+    uint16_t pos = cursor_y * VGA_COLS + cursor_x;
     
     outb(0x3D4, 0x0F); /* Cursor position low byte */
     outb(0x3D5, pos & 0xFF);
     
     outb(0x3D4, 0x0E); /* Cursor position high byte */
     outb(0x3D5, (pos >> 8) & 0xFF);
+}
+
+void vga_set_xy(int x, int y) {
+    cursor_x = x;
+    cursor_y = y;
+    vga_set_cursor();
 }
 
 /* Write a character to VGA text mode */
@@ -567,7 +571,7 @@ void emit(char c) {
         cursor_x = 0;
     }
     
-    vga_set_cursor(cursor_x, cursor_y);
+    vga_set_cursor();
 }
 
 /* Write a string to VGA text mode */
@@ -584,16 +588,14 @@ void vga_clear(void) {
         vga[i] = blank;
     }
     
-    cursor_x = 0;
-    cursor_y = 0;
-    vga_set_cursor(0, 0);
+    vga_set_xy(0,0);
 }
 
 /* Main kernel entry point */
 void kernel_main(void) {
     /* Initialize hardware */
     vga_clear();
-    serial_init();
+    // serial_init();
     gdt_init();
     idt_init();
     pic_init();

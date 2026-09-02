@@ -66,10 +66,9 @@
 	X(SEE,    "see",      doSee(); ) \
 	X(DISKRD, "disk-rd",  t = pop(); n = pop(); ata_read_block(t, (void*)n); ) \
 	X(DISKWT, "disk-wt",  t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
-	X(TOXY,   "->xy",     cursor_y = pop(); cursor_x = pop(); vga_set_cursor(cursor_x, cursor_y); ) \
+	X(TOXY,   "->xy",     t = pop(); n = pop(); vga_set_xy(n, t); ) \
 	X(WFET,   "w@",       TOS = *(uint16_t *)TOS; ) \
 	X(WSTO,   "w!",       t = pop(); n = pop(); *(uint16_t *)t = (uint16_t)n; ) \
-	X(EDIT,   "edit",     edit(); ) \
 
 enum { PRIMS(X1) LASTOP };
 
