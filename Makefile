@@ -21,7 +21,7 @@ GRUBDIR = $(BOOTDIR)/grub
 KERNEL = $(BUILD_DIR)/kernel.elf
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
 ISO_IMAGE = $(BUILD_DIR)/os.iso
-OS_SUPPORT_OBJ = $(BUILD_DIR)/os.o
+LIB_OBJ = $(BUILD_DIR)/lib.o
 DWC_VM_OBJ = $(BUILD_DIR)/dwc-vm.o
 DISK_IMAGE = $(BUILD_DIR)/disk.img
 
@@ -41,16 +41,16 @@ boot.h: boot.f block-01.fth
 	fwc
 
 # Compile OS-specific support
-$(OS_SUPPORT_OBJ): os.c boot.h | $(BUILD_DIR)
-	$(CC) $(CFLAGS) os.c -o $(OS_SUPPORT_OBJ)
+$(LIB_OBJ): lib.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) lib.c -o $(LIB_OBJ)
 
 # Compile the DWC VM
-$(DWC_VM_OBJ): dwc-vm.c dwc-vm.h | $(BUILD_DIR)
+$(DWC_VM_OBJ): dwc-vm.c dwc-vm.h boot.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) dwc-vm.c -o $(DWC_VM_OBJ)
 
 # Link kernel
-$(KERNEL): $(BUILD_DIR)/kernel.o $(OS_SUPPORT_OBJ) $(DWC_VM_OBJ) *.[ch]
-	$(LD) $(LDFLAGS) -o $(KERNEL) $(BUILD_DIR)/kernel.o $(OS_SUPPORT_OBJ) $(DWC_VM_OBJ)
+$(KERNEL): $(BUILD_DIR)/kernel.o $(LIB_OBJ) $(DWC_VM_OBJ) boot.h *.[ch]
+	$(LD) $(LDFLAGS) -o $(KERNEL) $(BUILD_DIR)/kernel.o $(LIB_OBJ) $(DWC_VM_OBJ)
 
 # Create bootable ISO image
 iso: $(KERNEL)
@@ -81,6 +81,6 @@ debug: $(KERNEL)
 
 # Clean build artifacts
 clean:
-	rm -rf $(BUILD_DIR) boot.h
+	rm -rf $(BUILD_DIR)/*.o $(BUILD_DIR)/*.elf boot.h
 
 .PHONY: all iso run run-iso debug clean

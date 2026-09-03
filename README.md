@@ -28,7 +28,7 @@ kernel.h        - Extern functions for kernel.c
 LICENSE         - MIT license
 linker.ld       - Memory layout and ELF placement
 Makefile        - Build system
-os.c            - OS/runtime support layer and freestanding compatibility helpers
+lib.c            - OS/runtime support layer and freestanding compatibility helpers
 README.md       - This file
 ```
 
@@ -156,7 +156,7 @@ This is the Forth VM used by the project. It includes:
 - VM entry points like `outer()`, `inner()`, and `dwcInit()`
 - Primitive hooks for `emit`, `ztype`, `key`, `key?`, and `timer`
 
-### os.c
+### lib.c
 
 This file provides the minimal runtime glue needed for a freestanding build, including:
 

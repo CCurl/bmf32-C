@@ -1,23 +1,4 @@
 #include "dwc-vm.h"
-#include "boot.h"
-
-// ==================================================
-void repl() {
-    char *tib = ((char *)(last))-1024;
-    if (state != COMPILE) { state = INTERPRET; }
-    zType((state == COMPILE) ? " ... "  : " ok\n");
-    outer("last 1024 - 256 accept");
-    if (pop()) {
-        emit(' ');
-        outer(tib);
-    }
-}
-
-void dwcRun() {
-    dwcInit();
-    outer(DWC_SRC);
-    do { repl(); } while (1);
-}
 
 // ==================================================
 int strlen(const char *s) {
@@ -60,14 +41,7 @@ void *memmove(void *dest, const void *src, cell num) {
     if (d < s) {
         for (cell i = 0; i < num; ++i) { *(d++) = *(s++); }
     } else {
-        d += num; s += num;
-        for (cell i = 0; i < num; ++i) { *(--d) = *(--s); }
+        for (cell i = num-1; i >= 0; --i) { d[i] = s[i]; }
     }
     return dest;
-}
-
-int key(void) {
-    int c = -1;
-    while (c < 0) { c = keyboard_get_char(); }
-    return c;
 }

@@ -224,6 +224,11 @@ cell var t4   cell var t5   cell var t6 \
 : blk-wt ( addr blk#-- ) 2* 2dup disk-wt 1+ >t 512 + t> disk-wt ; \
 cell var block \
  \
+14 mb mem + const ram-disk \
+: load ( n-- ) +L x! x@ kb ram-disk + y! \
+    y@ x@ blk-rd  0 y@ 1023 + c! \
+    y@ -L outer ; \
+ \
 ( Editor ) \
 1 kb var ed-blk \
 16 const rows       64 const cols \
@@ -245,11 +250,13 @@ cell var block \
 : ed-mv ( dx dy -- ) cursor-y +!  cursor-x +! ed->xy ; \
 : ed-rd ( -- ) ed-blk block @ blk-rd ; \
 : ed-wt ( -- ) ed-blk block @ blk-wt ; \
-: ed-repl ( -- ) z\" -replace-\" ed-msg begin \
+: ed-rep1 ( -- ) z\" -r-\" ed-msg key x! ed-clr \
+      x@ ascii? if x@ ed-pos c! x@ emit ed-x! then ; \
+: ed-rep ( -- ) z\" -replace-\" ed-msg begin \
       key x!  \
       x@ 27 = if ed-clr exit then ( ESC => exit ) \
       x@ 10 = if  cy 1+ cy! 0 cx! ed->xy then \
-      x@ 31 > x@ 127 < and if x@ ed-pos c! x@ emit ed-x! then \
+      x@ ascii? if x@ ed-pos c! x@ emit ed-x! then \
     again ; \
 : ed-ins-eob ( -- ) ed-pos ed-blk 1023 + +L2 y@- z! \
     begin c@y- c!z- y@ x@ < until \
@@ -272,18 +279,19 @@ cell var block \
     x@  32 = if  1  0 ed-mv exit then \
     x@ 'I' = if ed-ins-eob exit then \
     x@ 'i' = if ed-ins-eol exit then \
-    x@ 'R' = if ed-repl exit then \
+    x@ 'r' = if ed-rep1 exit then \
+    x@ 'R' = if ed-rep exit then \
     x@ 'x' = if ed-del-eol exit then \
     x@ 'X' = if ed-del-eob exit then \
     x@  10 = if  cy 1+ cy! 0 cx! ed->xy exit then \
     x@  19 = if ed-wt z\" -saved-\" ed-msg 500 ms ed-clr exit then \
     ; \
-: doEd ( n-- ) block ! cls  ed-rd  1 isShow c! \
+: edit ( n-- ) block ! cls  ed-rd  1 isShow c! \
     begin ?ed-show key x!  \
       x@ 17 = if 0 rows ->xy exit then ( ctrl-q => exit ) \
       ed-go \
     again ; \
-: ed block @ doEd ; \
+: ed block @ edit ; \
  \
 : .version ( -- ) version <# # # #. # # #. # # #s #> ztype ; \
 : .si .\" bmf32-C v\" .version .f\" \\n\\nhttps://github.com/CCurl/bmf32-C\" ; \

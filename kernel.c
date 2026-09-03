@@ -205,70 +205,6 @@ void gdt_init(void) {
     );
 }
 
-/* Keyboard scan code to ASCII conversion table */
-static const char scancode_to_ascii[] = {
-     0 ,  27, '1', '2', '3', '4', '5', '6',  '7', '8', '9',  '0', '-', '=',   8,   9,
-    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',  'o', 'p', '[',  ']',  10,  0 , 'a', 's',
-    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',  0 , '\\', 'z', 'x', 'c', 'v',
-    'b', 'n', 'm', ',', '.', '/',  0 , '*',   0 , ' ',  0 ,   0 ,  0 ,  0 ,  0 ,  0 ,
-     0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , '7',  '8', '9', '-',  '4', '5', '6', '+', '1',
-    '2', '3', '0', '.',  0 ,  0 ,  0 ,  0 ,   0 ,  0 ,  0 ,   0 ,  0 ,  0 ,  0 ,  0 ,
-     0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,   0 ,  0 ,  0 ,   0 ,  0 ,  0 ,  0 ,   0
-};
-
-/* Translate a scancode to a character, honoring Shift and Ctrl state. */
-static char keyboard_translate_scancode(uint8_t scancode) {
-    if (scancode >= sizeof(scancode_to_ascii)) {
-        return 0;
-    }
-
-    char c = scancode_to_ascii[scancode];
-
-    if (ctrl_pressed) {
-        if (c >= 'a' && c <= 'z') {
-            return c - 'a' + 1;
-        }
-        if (c >= 'A' && c <= 'Z') {
-            return c - 'A' + 1;
-        }
-        if (c == '[') return 27;
-        if (c == ']') return 29;
-        if (c == '\\') return 28;
-        if (c == ';') return 29;
-        if (c == '\'') return 0;
-    }
-
-    if (c == 0 || !shift_pressed) {
-        return c;
-    }
-
-    if (c >= 'a' && c <= 'z') {
-        return c - ('a' - 'A');
-    }
-
-    if (c >= '0' && c <= '9') {
-        static const char shifted_digits[] = {
-            ')', '!', '@', '#', '$', '%', '^', '&', '*', '('
-        };
-        return shifted_digits[c - '0'];
-    }
-
-    switch (c) {
-        case '`': return '~';
-        case '-': return '_';
-        case '=': return '+';
-        case '[': return '{';
-        case ']': return '}';
-        case '\\': return '|';
-        case ';': return ':';
-        case '\'': return '"';
-        case ',': return '<';
-        case '.': return '>';
-        case '/': return '?';
-        default: return c;
-    }
-}
-
 /* Timer interrupt handler */
 void __attribute__((interrupt)) timer_handler(void *frame) {
     (void)frame;
@@ -366,6 +302,71 @@ void pic_init(void) {
     outb(PIC_MASTER_DATA, mask);
 }
 
+// Keyboard routines =========================================================
+/* Keyboard scan code to ASCII conversion table */
+static const char scancode_to_ascii[] = {
+     0 ,  27, '1', '2', '3', '4', '5', '6',  '7', '8', '9',  '0', '-', '=',   8,   9,
+    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',  'o', 'p', '[',  ']',  10,  0 , 'a', 's',
+    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',  0 , '\\', 'z', 'x', 'c', 'v',
+    'b', 'n', 'm', ',', '.', '/',  0 , '*',   0 , ' ',  0 ,   0 ,  0 ,  0 ,  0 ,  0 ,
+     0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , '7',  '8', '9', '-',  '4', '5', '6', '+', '1',
+    '2', '3', '0', '.',  0 ,  0 ,  0 ,  0 ,   0 ,  0 ,  0 ,   0 ,  0 ,  0 ,  0 ,  0 ,
+     0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,   0 ,  0 ,  0 ,   0 ,  0 ,  0 ,  0 ,   0
+};
+
+/* Translate a scancode to a character, honoring Shift and Ctrl state. */
+static char keyboard_translate_scancode(uint8_t scancode) {
+    if (scancode >= sizeof(scancode_to_ascii)) {
+        return 0;
+    }
+
+    char c = scancode_to_ascii[scancode];
+
+    if (ctrl_pressed) {
+        if (c >= 'a' && c <= 'z') {
+            return c - 'a' + 1;
+        }
+        if (c >= 'A' && c <= 'Z') {
+            return c - 'A' + 1;
+        }
+        if (c == '[') return 27;
+        if (c == ']') return 29;
+        if (c == '\\') return 28;
+        if (c == ';') return 29;
+        if (c == '\'') return 0;
+    }
+
+    if (c == 0 || !shift_pressed) {
+        return c;
+    }
+
+    if (c >= 'a' && c <= 'z') {
+        return c - ('a' - 'A');
+    }
+
+    if (c >= '0' && c <= '9') {
+        static const char shifted_digits[] = {
+            ')', '!', '@', '#', '$', '%', '^', '&', '*', '('
+        };
+        return shifted_digits[c - '0'];
+    }
+
+    switch (c) {
+        case '`': return '~';
+        case '-': return '_';
+        case '=': return '+';
+        case '[': return '{';
+        case ']': return '}';
+        case '\\': return '|';
+        case ';': return ':';
+        case '\'': return '"';
+        case ',': return '<';
+        case '.': return '>';
+        case '/': return '?';
+        default: return c;
+    }
+}
+
 /* Read character from keyboard buffer (non-blocking) */
 int keyboard_get_char(void) {
     while (kbd_head != kbd_tail) {
@@ -409,6 +410,13 @@ int keyboard_get_char(void) {
     return -1;  /* No character available */
 }
 
+int key(void) {
+    int c = -1;
+    while (c < 0) { c = keyboard_get_char(); }
+    return c;
+}
+
+// Serial port routines =========================================================
 /* Initialize serial port for debugging */
 // void serial_init(void) {
 //     uint16_t port = 0x3F8; /* COM1 */
@@ -442,6 +450,7 @@ int keyboard_get_char(void) {
 //     }
 // }
 
+// Disk routines =========================================================
 /* ATA/IDE PIO helper functions */
 static int ata_wait_bsy(void) {
     for (int i = 0; i < ATA_POLL_TIMEOUT; i++) {
@@ -507,6 +516,7 @@ int ata_write_block(uint32_t LBA, const void *buf) {
     return 0;
 }
 
+// VGA routines =========================================================
 /* Set cursor position in VGA text mode */
 void vga_set_cursor() {
     uint16_t pos = cursor_y * VGA_COLS + cursor_x;

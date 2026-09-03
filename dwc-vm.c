@@ -1,5 +1,6 @@
 // A Tachyon inspired system, MIT license, (c) 2026 Chris Curl
 #include "dwc-vm.h"
+#include "boot.h"
 
 #define X1(op, name, code)   op,
 #define X2(op, name, code)   case op: code goto next;
@@ -277,4 +278,14 @@ void dwcInit() {
 	};
 	for (int i = 0; nv[i].name; i++) { addLit(nv[i].name, nv[i].value); }
 	for (int i = 0; prims[i].name; i++) { addPrim(prims[i].name, prims[i].value); }
+}
+
+void dwcRun() {
+    dwcInit();
+    outer(DWC_SRC);
+    while (1) {
+		if (state != COMPILE) { state = INTERPRET; }
+		zType((state == COMPILE) ? " ... "  : " ok\n");
+		outer("last 1024 - dup 256 accept drop space outer");
+	}
 }
