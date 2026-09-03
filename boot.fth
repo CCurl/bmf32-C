@@ -236,6 +236,7 @@ cell var block
 : cx ( -- x ) cursor-x @ ;  : cx! cursor-x ! ;
 : cy ( -- y ) cursor-y @ ;  : cy! cursor-y ! ;
 : ed-pos ( --pos ) cy cols * cx + ed-blk + ;
+: ed-norm ( -- ) ed-blk >t 1024 for t@ c@ if0 32 t@ c! then t++ next ;
 : ?ed-show ( -- ) isShow c@ if0 exit then
     cx cy ed-blk +L3  0 0 ->xy  0 isShow c!
     rows for
@@ -248,7 +249,7 @@ cell var block
 : ed-y! ( -- )  cy 0 max rows 1- min cy! ;
 : ed->xy ( -- ) ed-x!  ed-y!  cx cy ->xy ;
 : ed-mv ( dx dy -- ) cursor-y +!  cursor-x +! ed->xy ;
-: ed-rd ( -- ) ed-blk block @ blk-rd ;
+: ed-rd ( -- ) ed-blk block @ blk-rd ed-norm ;
 : ed-sv ( -- ) ed-blk block @ blk-wt ;
 : ed-rep-one ( -- ) z" -r-" ed-msg key x! ed-clr
       x@ ascii? if x@ ed-pos c! x@ emit ed-x! then ;
@@ -286,6 +287,8 @@ cell var block
     x@ 'X' = if ed-del-eob exit then
     x@  10 = if cy rows 1- < if cr then exit then
     x@  19 = if ed-sv z" -saved-" ed-msg 500 ms ed-clr exit then
+	x@ '+' = if ed-sv block @ 1+ 1023 min block ! ed-rd ed-show! exit then
+	x@ '-' = if ed-sv block @ 1-    0 max block ! ed-rd ed-show! exit then
     x@ <# 32 hold #s 32 hold #> ed-msg ;
 : edit ( n-- ) block ! cls  ed-rd  1 isShow c!
     begin ?ed-show key x! 
