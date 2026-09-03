@@ -37,7 +37,7 @@ $(BUILD_DIR)/kernel.o: kernel.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) kernel.c -o $(BUILD_DIR)/kernel.o
 
 # Create boot.h from boot.f
-boot.h: boot.f block-01.fth
+boot.h: boot.fth block-01.fth
 	fwc
 
 # Compile OS-specific support
