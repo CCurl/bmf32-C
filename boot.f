@@ -242,20 +242,21 @@ cell var block
       cols for  c@z+ emit  next cr
     next  x@ y@ ->xy  -L ;
 : ed-show! ( -- ) 1 isShow c! ?ed-show ;
-: ed-clr ( -- ) cy cy  0 rows ->xy  60 spaces  ->xy ;
+: ed-clr ( -- ) cx cy  0 rows ->xy  30 spaces  ->xy ;
 : ed-msg ( addr-- ) >t  cx cy  0 rows ->xy  t> ztype  ->xy ;
 : ed-x! ( -- )  cx 0 max cols 1- min cx! ;
 : ed-y! ( -- )  cy 0 max rows 1- min cy! ;
 : ed->xy ( -- ) ed-x!  ed-y!  cx cy ->xy ;
 : ed-mv ( dx dy -- ) cursor-y +!  cursor-x +! ed->xy ;
 : ed-rd ( -- ) ed-blk block @ blk-rd ;
-: ed-wt ( -- ) ed-blk block @ blk-wt ;
+: ed-sv ( -- ) ed-blk block @ blk-wt ;
 : ed-rep1 ( -- ) z" -r-" ed-msg key x! ed-clr
       x@ ascii? if x@ ed-pos c! x@ emit ed-x! then ;
 : ed-rep ( -- ) z" -replace-" ed-msg begin
       key x! 
       x@ 27 = if ed-clr exit then ( ESC => exit )
-      x@ 10 = if  cy 1+ cy! 0 cx! ed->xy then
+      x@ 10 = if cy 1+ cy! 0 cx! ed->xy then
+      x@  8 = if x@ emit then
       x@ ascii? if x@ ed-pos c! x@ emit ed-x! then
     again ;
 : ed-ins-eob ( -- ) ed-pos ed-blk 1023 + +L2 y@- z!
@@ -283,9 +284,9 @@ cell var block
     x@ 'R' = if ed-rep exit then
     x@ 'x' = if ed-del-eol exit then
     x@ 'X' = if ed-del-eob exit then
-    x@  10 = if  cy 1+ cy! 0 cx! ed->xy exit then
-    x@  19 = if ed-wt z" -saved-" ed-msg 500 ms ed-clr exit then
-    ;
+    x@  10 = if cy rows 1- < if cr then exit then
+    x@  19 = if ed-sv z" -saved-" ed-msg 500 ms ed-clr exit then
+    x@ <# 32 hold #s 32 hold #> ed-msg ;
 : edit ( n-- ) block ! cls  ed-rd  1 isShow c!
     begin ?ed-show key x! 
       x@ 17 = if 0 rows ->xy exit then ( ctrl-q => exit )
