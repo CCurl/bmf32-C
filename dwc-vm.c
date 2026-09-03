@@ -263,7 +263,7 @@ void dwcInit() {
 	NVP_T nv[] = {
 		{ "version",  VERSION },          { "text-color", (cell)&text_color },
 		{ "cursor-x", (cell)&cursor_x },  { "cursor-y",   (cell)&cursor_y },
-		{ "kbd-head", (cell)&kbd_head },  { "kbd-tail",   (cell)&kbd_tail },
+		{ "(kbd-i)",  (cell)&kbd_head },  { "(kbd-o)",    (cell)&kbd_tail },
 		{ "(ticks)",  (cell)&sys_ticks },
 		{ "(h)",      (cell)&here },      { "(l)",        (cell)&last },
 		{ "(lsp)",    (cell)&lsp },       { "lstk",       (cell)&lstk[0] },

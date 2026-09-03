@@ -114,7 +114,7 @@ val tsp  (val) (tsp)
 : <> ( a b--f ) = 0= ; inline
 : type ( a n-- ) for dup c@ emit 1+ next drop ;
 : btwi ( n l h--f ) >t over <= swap t> <= and ;
-: key? ( --f )  kbd-head @ kbd-tail @ <> ;
+: key? ( --f )  (kbd-i) @ (kbd-o) @ <> ;
 : ascii? ( c--f )  32 127 btwi ;
 : com    ( n--n' ) -1 xor ;
 : negate ( n--n' ) com 1+ ;

@@ -3,7 +3,7 @@
 
 // ==================================================
 void repl() {
-    char *tib = (char *)(last-1024);
+    char *tib = ((char *)(last))-1024;
     if (state != COMPILE) { state = INTERPRET; }
     zType((state == COMPILE) ? " ... "  : " ok\n");
     outer("last 1024 - 256 accept");
