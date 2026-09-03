@@ -250,7 +250,7 @@ cell var block
 : ed-mv ( dx dy -- ) cursor-y +!  cursor-x +! ed->xy ;
 : ed-rd ( -- ) ed-blk block @ blk-rd ;
 : ed-sv ( -- ) ed-blk block @ blk-wt ;
-: ed-rep1 ( -- ) z" -r-" ed-msg key x! ed-clr
+: ed-rep-one ( -- ) z" -r-" ed-msg key x! ed-clr
       x@ ascii? if x@ ed-pos c! x@ emit ed-x! then ;
 : ed-rep ( -- ) z" -replace-" ed-msg begin
       key x! 
@@ -280,8 +280,8 @@ cell var block
     x@  32 = if  1  0 ed-mv exit then
     x@ 'I' = if ed-ins-eob exit then
     x@ 'i' = if ed-ins-eol exit then
-    x@ 'r' = if ed-rep1 exit then
-    x@ 'R' = if ed-rep exit then
+    x@ 'r' = if ed-rep-one exit then
+    x@ 'R' = if ed-rep     exit then
     x@ 'x' = if ed-del-eol exit then
     x@ 'X' = if ed-del-eob exit then
     x@  10 = if cy rows 1- < if cr then exit then
