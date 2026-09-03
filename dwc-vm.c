@@ -96,7 +96,7 @@ int  isTmpW(const char *w) { return (w[0]=='t') && btwi(w[1],'0','9') && (w[2]==
 void addPrim(const char *nm, ucell op) { DE_T *dp = addToDict((char*)nm); if (dp) { dp->xt = op; } }
 void addLit(const char *name, cell val) { addToDict((char*)name); compileNum(val); comma(EXIT); }
 char *checkWord(char *w) { return w ? w : (nextWord() ? &wd[0] : NULL); }
-void compileErr(char* w) { zType("\n-word:["); zType(w); zType("]?-\n"); }
+void compileErr(char *w) { zType("\n-word:["); zType(w); zType("]?-\n"); }
 void zTypeStrNum(const char *s, cell n, cell b, cell w) { zType(s); iToA(n, b, w); }
 
 int nextWord() {
@@ -265,7 +265,7 @@ void dwcInit() {
 		{ "version",  VERSION },          { "text-color", (cell)&text_color },
 		{ "cursor-x", (cell)&cursor_x },  { "cursor-y",   (cell)&cursor_y },
 		{ "(kbd-i)",  (cell)&kbd_head },  { "(kbd-o)",    (cell)&kbd_tail },
-		{ "(ticks)",  (cell)&sys_ticks },
+		{ "(ticks)",  (cell)&sys_ticks }, { "de-sz",      (cell)sizeof(DE_T)},
 		{ "(h)",      (cell)&here },      { "(l)",        (cell)&last },
 		{ "(lsp)",    (cell)&lsp },       { "lstk",       (cell)&lstk[0] },
 		{ "(rsp)",    (cell)&rsp },       { "rstk",       (cell)&rstk[0] },
@@ -273,8 +273,8 @@ void dwcInit() {
 		{ "(sp)",     (cell)&dsp },       { "stk",        (cell)&dstk[0] },
 		{ "state",    (cell)&state },     { "base",       (cell)&base },
 		{ "mem",      (cell)&mem[0] },    { "mem-sz",     (cell)MEM_SZ },
-		{ ">in",      (cell)&toIn},       { "de-sz",      (cell)sizeof(DE_T)},
-		{ "cell",     (cell)CELL_SZ },    { 0, 0 }
+		{ ">in",      (cell)&toIn},       { "cell",       (cell)CELL_SZ },
+		{ 0, 0 }
 	};
 	for (int i = 0; nv[i].name; i++) { addLit(nv[i].name, nv[i].value); }
 	for (int i = 0; prims[i].name; i++) { addPrim(prims[i].name, prims[i].value); }
