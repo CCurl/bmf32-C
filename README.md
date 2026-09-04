@@ -1,4 +1,4 @@
-⅕# Bare Metal OS - QEMU
+# Bare Metal OS - QEMU
 
 A minimal bare-metal x86 kernel written in pure C and booted under QEMU. It includes a simple text-mode VGA console, serial output, interrupt-driven keyboard input, a PIT-based tick counter, and a Forth VM (not ANSI-Standard).
 
@@ -154,7 +154,7 @@ This is the Forth VM used by the project. It includes:
 - A dictionary and primitive table
 - stack operations and compiled words
 - VM entry points like `outer()`, `inner()`, and `dwcInit()`
-- Primitive hooks for `emit`, `ztype`, `key`, `key?`, and `timer`
+- Primitive hooks for `emit`, `ztype`, and `key`
 
 ### lib.c
 
