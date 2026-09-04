@@ -1,4 +1,4 @@
-# Bare Metal OS - QEMU
+⅕# Bare Metal OS - QEMU
 
 A minimal bare-metal x86 kernel written in pure C and booted under QEMU. It includes a simple text-mode VGA console, serial output, interrupt-driven keyboard input, a PIT-based tick counter, and a Forth VM (not ANSI-Standard).
 
@@ -19,8 +19,8 @@ A minimal bare-metal x86 kernel written in pure C and booted under QEMU. It incl
 
 ```text
 block-01.fth    - Translates boot.f -> boot.h using fwc
-boot.f          - Forth source code for the OS
-boot.h          - Auto-generated C header file of 'boot.f'
+boot.fth        - Forth source code for the OS
+boot.h          - Auto-generated C header file of 'boot.fth'
 dwc-vm.c        - Forth-style VM implementation
 dwc-vm.h        - VM interface and memory layout declarations
 kernel.c        - Kernel core: VGA, serial, PIC, keyboard, timer, IRQ setup
@@ -28,7 +28,7 @@ kernel.h        - Extern functions for kernel.c
 LICENSE         - MIT license
 linker.ld       - Memory layout and ELF placement
 Makefile        - Build system
-lib.c            - OS/runtime support layer and freestanding compatibility helpers
+lib.c           - OS/runtime support layer and freestanding compatibility helpers
 README.md       - This file
 ```
 
