@@ -76,6 +76,7 @@ val tsp  (val) (tsp) \
 : >t  ( n-- ) tsp 1+ 31 and (tsp) ! t! ; \
 : t>  ( --n ) t@ tsp 1- 31 and (tsp) ! ; \
 : tdrop ( -- ) t> drop ; inline \
+: t++ ( -- )  t@ 1+ t! ; inline \
  \
 ( Strings ) \
 : compiling? ( --n ) state @ 1 = ; \
@@ -225,7 +226,7 @@ cell var t4   cell var t5   cell var t6 \
 cell var block \
  \
 14 mb mem + const ram-disk \
-: load ( n-- ) +L x! x@ kb ram-disk + y! \
+: load ( n-- ) +L1 x@ kb ram-disk + y! \
     y@ x@ blk-rd  0 y@ 1023 + c! \
     y@ -L outer ; \
  \
@@ -236,23 +237,26 @@ cell var block \
 : cx ( -- x ) cursor-x @ ;  : cx! cursor-x ! ; \
 : cy ( -- y ) cursor-y @ ;  : cy! cursor-y ! ; \
 : ed-pos ( --pos ) cy cols * cx + ed-blk + ; \
+: ed-norm ( -- ) ed-blk >t 1024 for t@ c@ if0 32 t@ c! then t++ next ; \
 : ?ed-show ( -- ) isShow c@ if0 exit then \
     cx cy ed-blk +L3  0 0 ->xy  0 isShow c! \
     rows for \
       cols for  c@z+ emit  next cr \
     next  x@ y@ ->xy  -L ; \
 : ed-show! ( -- ) 1 isShow c! ?ed-show ; \
-: ed-clr ( -- ) cx cy  0 rows ->xy  30 spaces  ->xy ; \
-: ed-msg ( addr-- ) >t  cx cy  0 rows ->xy  t> ztype  ->xy ; \
+: ed->ftr  ( -- ) cy >t cx >t  0 rows ->xy ; \
+: ed-.ftr  ( addr cy cx-- ) block @ .f\" Block %d (%d,%d) %s   \" ; \
+: ed-ftr   ( addr-- ) cy cx ed->ftr  ed-.ftr  t> t> ->xy ; \
+: ed-clr   ( -- ) z\"         \" ed-ftr ; \
 : ed-x! ( -- )  cx 0 max cols 1- min cx! ; \
 : ed-y! ( -- )  cy 0 max rows 1- min cy! ; \
 : ed->xy ( -- ) ed-x!  ed-y!  cx cy ->xy ; \
 : ed-mv ( dx dy -- ) cursor-y +!  cursor-x +! ed->xy ; \
-: ed-rd ( -- ) ed-blk block @ blk-rd ; \
+: ed-rd ( -- ) ed-blk block @ blk-rd ed-norm ; \
 : ed-sv ( -- ) ed-blk block @ blk-wt ; \
-: ed-rep1 ( -- ) z\" -r-\" ed-msg key x! ed-clr \
+: ed-rep-one ( -- ) z\" -r-\" ed-ftr key x! ed-clr \
       x@ ascii? if x@ ed-pos c! x@ emit ed-x! then ; \
-: ed-rep ( -- ) z\" -replace-\" ed-msg begin \
+: ed-rep ( -- ) z\" -replace-\" ed-ftr begin \
       key x!  \
       x@ 27 = if ed-clr exit then ( ESC => exit ) \
       x@ 10 = if cy 1+ cy! 0 cx! ed->xy then \
@@ -280,16 +284,18 @@ cell var block \
     x@  32 = if  1  0 ed-mv exit then \
     x@ 'I' = if ed-ins-eob exit then \
     x@ 'i' = if ed-ins-eol exit then \
-    x@ 'r' = if ed-rep1 exit then \
-    x@ 'R' = if ed-rep exit then \
+    x@ 'r' = if ed-rep-one exit then \
+    x@ 'R' = if ed-rep     exit then \
     x@ 'x' = if ed-del-eol exit then \
     x@ 'X' = if ed-del-eob exit then \
     x@  10 = if cy rows 1- < if cr then exit then \
-    x@  19 = if ed-sv z\" -saved-\" ed-msg 500 ms ed-clr exit then \
-    x@ <# 32 hold #s 32 hold #> ed-msg ; \
+    x@  19 = if ed-sv z\" -saved-\" ed-ftr 500 ms ed-clr exit then \
+	x@ '+' = if ed-sv block @ 1+ 1023 min block ! ed-rd ed-show! exit then \
+	x@ '-' = if ed-sv block @ 1-    0 max block ! ed-rd ed-show! exit then \
+    x@ <# #s #> ed-ftr ; \
 : edit ( n-- ) block ! cls  ed-rd  1 isShow c! \
-    begin ?ed-show key x!  \
-      x@ 17 = if 0 rows ->xy exit then ( ctrl-q => exit ) \
+    begin ?ed-show z\" \" ed-ftr  key x!  \
+      x@ 17 = if 0 rows 1+ ->xy exit then ( ctrl-q => exit ) \
       ed-go \
     again ; \
 : ed block @ edit ; \
