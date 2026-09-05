@@ -120,8 +120,6 @@ static inline void lidt(void *idt_ptr) {
     asm volatile("lidt (%0)" : : "r"(idt_ptr));
 }
 
-/* Forward declarations for VGA functions */
-void vga_set_cursor(int x, int y);
 
 /* GDT Entry */
 struct gdt_entry {
@@ -205,70 +203,6 @@ void gdt_init(void) {
         "mov %%ax, %%ss\n"
         : : : "eax"
     );
-}
-
-/* Keyboard scan code to ASCII conversion table */
-static const char scancode_to_ascii[] = {
-     0 ,  27, '1', '2', '3', '4', '5', '6',  '7', '8', '9',  '0', '-', '=',   8,   9,
-    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',  'o', 'p', '[',  ']',  10,  0 , 'a', 's',
-    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',  0 , '\\', 'z', 'x', 'c', 'v',
-    'b', 'n', 'm', ',', '.', '/',  0 , '*',   0 , ' ',  0 ,   0 ,  0 ,  0 ,  0 ,  0 ,
-     0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , '7',  '8', '9', '-',  '4', '5', '6', '+', '1',
-    '2', '3', '0', '.',  0 ,  0 ,  0 ,  0 ,   0 ,  0 ,  0 ,   0 ,  0 ,  0 ,  0 ,  0 ,
-     0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,   0 ,  0 ,  0 ,   0 ,  0 ,  0 ,  0 ,   0
-};
-
-/* Translate a scancode to a character, honoring Shift and Ctrl state. */
-static char keyboard_translate_scancode(uint8_t scancode) {
-    if (scancode >= sizeof(scancode_to_ascii)) {
-        return 0;
-    }
-
-    char c = scancode_to_ascii[scancode];
-
-    if (ctrl_pressed) {
-        if (c >= 'a' && c <= 'z') {
-            return c - 'a' + 1;
-        }
-        if (c >= 'A' && c <= 'Z') {
-            return c - 'A' + 1;
-        }
-        if (c == '[') return 27;
-        if (c == ']') return 29;
-        if (c == '\\') return 28;
-        if (c == ';') return 29;
-        if (c == '\'') return 0;
-    }
-
-    if (c == 0 || !shift_pressed) {
-        return c;
-    }
-
-    if (c >= 'a' && c <= 'z') {
-        return c - ('a' - 'A');
-    }
-
-    if (c >= '0' && c <= '9') {
-        static const char shifted_digits[] = {
-            ')', '!', '@', '#', '$', '%', '^', '&', '*', '('
-        };
-        return shifted_digits[c - '0'];
-    }
-
-    switch (c) {
-        case '`': return '~';
-        case '-': return '_';
-        case '=': return '+';
-        case '[': return '{';
-        case ']': return '}';
-        case '\\': return '|';
-        case ';': return ':';
-        case '\'': return '"';
-        case ',': return '<';
-        case '.': return '>';
-        case '/': return '?';
-        default: return c;
-    }
 }
 
 /* Timer interrupt handler */
@@ -368,7 +302,72 @@ void pic_init(void) {
     outb(PIC_MASTER_DATA, mask);
 }
 
-/* Read character from keyboard buffer (non-blocking) */
+// Keyboard routines =========================================================
+/* Keyboard scan code to ASCII conversion table */
+static const char scancode_to_ascii[] = {
+     0 ,  27, '1', '2', '3', '4', '5', '6',  '7', '8', '9',  '0', '-', '=',   8,   9,
+    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',  'o', 'p', '[',  ']',  10,  0 , 'a', 's',
+    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',  0 , '\\', 'z', 'x', 'c', 'v',
+    'b', 'n', 'm', ',', '.', '/',  0 , '*',   0 , ' ',  0 ,   0 ,  0 ,  0 ,  0 ,  0 ,
+     0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , '7',  '8', '9', '-',  '4', '5', '6', '+', '1',
+    '2', '3', '0', '.',  0 ,  0 ,  0 ,  0 ,   0 ,  0 ,  0 ,   0 ,  0 ,  0 ,  0 ,  0 ,
+     0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,   0 ,  0 ,  0 ,   0 ,  0 ,  0 ,  0 ,   0
+};
+
+/* Translate a scancode to a character, honoring Shift and Ctrl state. */
+static char keyboard_translate_scancode(uint8_t scancode) {
+    if (scancode >= sizeof(scancode_to_ascii)) {
+        return 0;
+    }
+
+    char c = scancode_to_ascii[scancode];
+
+    if (ctrl_pressed) {
+        if (c >= 'a' && c <= 'z') {
+            return c - 'a' + 1;
+        }
+        if (c >= 'A' && c <= 'Z') {
+            return c - 'A' + 1;
+        }
+        if (c == '[') return 27;
+        if (c == ']') return 29;
+        if (c == '\\') return 28;
+        if (c == ';') return 29;
+        if (c == '\'') return 0;
+    }
+
+    if (c == 0 || !shift_pressed) {
+        return c;
+    }
+
+    if (c >= 'a' && c <= 'z') {
+        return c - ('a' - 'A');
+    }
+
+    if (c >= '0' && c <= '9') {
+        static const char shifted_digits[] = {
+            ')', '!', '@', '#', '$', '%', '^', '&', '*', '('
+        };
+        return shifted_digits[c - '0'];
+    }
+
+    switch (c) {
+        case '`': return '~';
+        case '-': return '_';
+        case '=': return '+';
+        case '[': return '{';
+        case ']': return '}';
+        case '\\': return '|';
+        case ';': return ':';
+        case '\'': return '"';
+        case ',': return '<';
+        case '.': return '>';
+        case '/': return '?';
+        default: return c;
+    }
+}
+
+/* Read one character from the keyboard buffer (non-blocking) */
 int keyboard_get_char(void) {
     while (kbd_head != kbd_tail) {
         uint8_t scancode = (uint8_t)keyboard_buffer[kbd_tail];
@@ -411,6 +410,14 @@ int keyboard_get_char(void) {
     return -1;  /* No character available */
 }
 
+/* Read one character from the keyboard buffer (blocking) */
+int key(void) {
+    int c = -1;
+    while (c < 0) { c = keyboard_get_char(); }
+    return c;
+}
+
+// Serial port routines =========================================================
 /* Initialize serial port for debugging */
 void serial_init(void) {
     uint16_t port = 0x3F8; /* COM1 */
@@ -424,6 +431,27 @@ void serial_init(void) {
     outb(port + 4, 0x0B); /* Set DTR and RTS */
 }
 
+/* Write a character to serial port */
+void serial_emit(char c) {
+    uint16_t port = 0x3F8; /* COM1 */
+    
+    /* Wait for transmit buffer to be empty */
+    while ((inb(port + 5) & 0x20) == 0);
+    
+    outb(port, c);
+}
+
+/* Write a string to serial port */
+void serial_zType(const char *str) {
+    for (int i = 0; str[i] != '\0'; i++) {
+        serial_emit(str[i]);
+        if (str[i] == '\n') {
+            serial_emit('\r');
+        }
+    }
+}
+
+// Disk routines =========================================================
 /* ATA/IDE PIO helper functions */
 static int ata_wait_bsy(void) {
     for (int i = 0; i < ATA_POLL_TIMEOUT; i++) {
@@ -489,35 +517,22 @@ int ata_write_block(uint32_t LBA, const void *buf) {
     return 0;
 }
 
-/* Write a character to serial port */
-// void serial_emit(char c) {
-//     uint16_t port = 0x3F8; /* COM1 */
-//     
-//     /* Wait for transmit buffer to be empty */
-//     while ((inb(port + 5) & 0x20) == 0);
-//     
-//     outb(port, c);
-// }
-
-/* Write a string to serial port */
-// void serial_zType(const char *str) {
-//     for (int i = 0; str[i] != '\0'; i++) {
-//         serial_emit(str[i]);
-//         if (str[i] == '\n') {
-//             serial_emit('\r');
-//         }
-//     }
-// }
-
+// VGA routines =========================================================
 /* Set cursor position in VGA text mode */
-void vga_set_cursor(int x, int y) {
-    uint16_t pos = y * VGA_COLS + x;
+void vga_set_cursor() {
+    uint16_t pos = cursor_y * VGA_COLS + cursor_x;
     
     outb(0x3D4, 0x0F); /* Cursor position low byte */
     outb(0x3D5, pos & 0xFF);
     
     outb(0x3D4, 0x0E); /* Cursor position high byte */
     outb(0x3D5, (pos >> 8) & 0xFF);
+}
+
+void vga_set_xy(int x, int y) {
+    cursor_x = x;
+    cursor_y = y;
+    vga_set_cursor();
 }
 
 /* Write a character to VGA text mode */
@@ -567,7 +582,7 @@ void emit(char c) {
         cursor_x = 0;
     }
     
-    vga_set_cursor(cursor_x, cursor_y);
+    vga_set_cursor();
 }
 
 /* Write a string to VGA text mode */
@@ -584,11 +599,10 @@ void vga_clear(void) {
         vga[i] = blank;
     }
     
-    cursor_x = 0;
-    cursor_y = 0;
-    vga_set_cursor(0, 0);
+    vga_set_xy(0,0);
 }
 
+// Kernel main =========================================================
 /* Main kernel entry point */
 void kernel_main(void) {
     /* Initialize hardware */
@@ -602,9 +616,7 @@ void kernel_main(void) {
     /* Register interrupt handlers */
     register_interrupt_handler(32, (void (*)(void))timer_handler);  /* IRQ0 = vector 32 */
     register_interrupt_handler(33, (void (*)(void))keyboard_handler);  /* IRQ1 = vector 33 */
-    
-    /* Enable interrupts */
-    sti();
+    sti();     /* Enable interrupts */
 
     dwcRun();  /* Start the Forth-like interpreter */
 }

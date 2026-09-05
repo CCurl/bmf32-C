@@ -57,6 +57,5 @@ extern char *strcpy(char *a, const char *b);
 extern void *memmove(void *dest, const void *src, cell n);
 extern int  strlen(const char *a);
 extern int  strEqI(const char *a, const char *b);
-extern void edit();
 
 #endif //  __DWC_VM_H__

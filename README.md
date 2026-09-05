@@ -19,8 +19,8 @@ A minimal bare-metal x86 kernel written in pure C and booted under QEMU. It incl
 
 ```text
 block-01.fth    - Translates boot.f -> boot.h using fwc
-boot.f          - Forth source code for the OS
-boot.h          - Auto-generated C header file of 'boot.f'
+boot.fth        - Forth source code for the OS
+boot.h          - Auto-generated C header file of 'boot.fth'
 dwc-vm.c        - Forth-style VM implementation
 dwc-vm.h        - VM interface and memory layout declarations
 kernel.c        - Kernel core: VGA, serial, PIC, keyboard, timer, IRQ setup
@@ -28,7 +28,7 @@ kernel.h        - Extern functions for kernel.c
 LICENSE         - MIT license
 linker.ld       - Memory layout and ELF placement
 Makefile        - Build system
-os.c            - OS/runtime support layer and freestanding compatibility helpers
+lib.c           - OS/runtime support layer and freestanding compatibility helpers
 README.md       - This file
 ```
 
@@ -154,9 +154,9 @@ This is the Forth VM used by the project. It includes:
 - A dictionary and primitive table
 - stack operations and compiled words
 - VM entry points like `outer()`, `inner()`, and `dwcInit()`
-- Primitive hooks for `emit`, `ztype`, `key`, `key?`, and `timer`
+- Primitive hooks for `emit`, `ztype`, and `key`
 
-### os.c
+### lib.c
 
 This file provides the minimal runtime glue needed for a freestanding build, including:
 

@@ -1,5 +1,6 @@
 // A Tachyon inspired system, MIT license, (c) 2026 Chris Curl
 #include "dwc-vm.h"
+#include "boot.h"
 
 #define X1(op, name, code)   op,
 #define X2(op, name, code)   case op: code goto next;
@@ -10,9 +11,9 @@
 	X(LIT,    "",         push(code[pc++]); ) \
 	X(JMP,    "",         pc = code[pc]; ) \
 	X(JMPZ,   "",         if (pop()==0) { pc = code[pc]; } else { pc++; } ) \
-	X(JMPNZ,  "",         if (pop()) { pc = code[pc]; } else { pc++; } ) \
+	X(JMPNZ,  "",         if (pop()!=0) { pc = code[pc]; } else { pc++; } ) \
 	X(NJMPZ,  "",         if (TOS==0) { pc = code[pc]; } else { pc++; } ) \
-	X(NJMPNZ, "",         if (TOS) { pc = code[pc]; } else { pc++; } ) \
+	X(NJMPNZ, "",         if (TOS!=0) { pc = code[pc]; } else { pc++; } ) \
 	X(ZTYPE,  "ztype",    zType((const char*)pop()); ) \
 	X(FTYPE,  "ftype",    fType((char *)pop()); ) \
 	X(DUP,    "dup",      push(TOS); ) \
@@ -23,6 +24,8 @@
 	X(FET,    "@",        TOS = *(cell*)TOS; ) \
 	X(CSTO,   "c!",       t = pop(); n = pop(); *(byte*)t = (byte)n; ) \
 	X(CFET,   "c@",       TOS = *(byte*)TOS; ) \
+	X(WFET,   "w@",       TOS = *(uint16_t *)TOS; ) \
+	X(WSTO,   "w!",       t = pop(); n = pop(); *(uint16_t *)t = (uint16_t)n; ) \
 	X(RTO,    ">r",       rpush(pop()); ) \
 	X(RAT,    "r@",       push(rstk[rsp]); ) \
 	X(RFROM,  "r>",       push(rpop()); ) \
@@ -62,14 +65,12 @@
 	X(OUTER,  "outer",    t = pop(); outer((char*)t); ) \
 	X(MOVE,   "cmove",    t = pop(); n = pop(); memmove((void*)n, (void*)pop(), t); ) \
 	X(SLEN,   "s-len",    TOS = strlen((char*)TOS); ) \
+	X(SEQI,   "s-eqi",    t = pop(); TOS = (strEqI((char*)TOS, (char*)t)) ? -1 : 0; ) \
 	X(NWB,    ".nwb",     t=pop(); n=pop(); iToA(pop(), t, n); ) \
 	X(SEE,    "see",      doSee(); ) \
 	X(DISKRD, "disk-rd",  t = pop(); n = pop(); ata_read_block(t, (void*)n); ) \
 	X(DISKWT, "disk-wt",  t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
-	X(TOXY,   "->xy",     cursor_y = pop(); cursor_x = pop(); vga_set_cursor(cursor_x, cursor_y); ) \
-	X(WFET,   "w@",       TOS = *(uint16_t *)TOS; ) \
-	X(WSTO,   "w!",       t = pop(); n = pop(); *(uint16_t *)t = (uint16_t)n; ) \
-	X(EDIT,   "edit",     edit(); ) \
+	X(TOXY,   "->xy",     t = pop(); n = pop(); vga_set_xy(n, t); ) \
 
 enum { PRIMS(X1) LASTOP };
 
@@ -96,7 +97,7 @@ int  isTmpW(const char *w) { return (w[0]=='t') && btwi(w[1],'0','9') && (w[2]==
 void addPrim(const char *nm, ucell op) { DE_T *dp = addToDict((char*)nm); if (dp) { dp->xt = op; } }
 void addLit(const char *name, cell val) { addToDict((char*)name); compileNum(val); comma(EXIT); }
 char *checkWord(char *w) { return w ? w : (nextWord() ? &wd[0] : NULL); }
-void compileErr(char* w) { zType("\n-word:["); zType(w); zType("]?-\n"); }
+void compileErr(char *w) { zType("\n-word:["); zType(w); zType("]?-\n"); }
 void zTypeStrNum(const char *s, cell n, cell b, cell w) { zType(s); iToA(n, b, w); }
 
 int nextWord() {
@@ -126,15 +127,15 @@ int isNum(const char *w, cell b) {
 
 DE_T *addToDict(char *w) {
 	w = checkWord(w); if (!w) { return (DE_T*)0; }
-	DE_T *dp = last;
+	DE_T *dp = last-1;
 	if (isTmpW(w)) { dp = &tmpWords[w[1]-'0']; dp->xt = here; return dp; }
 	int ln = (int)strlen(w);
 	if (NAME_SZ <= ln) { ln = NAME_SZ-1; w[ln] = 0; }
 	if (ln == 0) { return (DE_T*)0; }
-	*(--dp) = (DE_T){ (ucell)here, 0, ln };
+	*dp = (DE_T){ (ucell)here, 0, ln };
 	strcpy(dp->nm, w);
 	last = dp;
-	return dp;
+	return last;
 }
 
 DE_T *findInDict(char *w) {
@@ -153,7 +154,7 @@ void iToA(cell n, cell b, cell w) {
 	char *p = ((char*)(last))-256; *p = 0;
 	do {
 		int d = n % b; n /= b;
-		*(--p) = btwi(d,0,9) ? '0'+d : 'A'+(d-10);
+		*(--p) = btwi(d, 0, 9) ? '0'+d : '7'+d;
 		--w;
 	} while (n);
 	while (w > 0) { *(--p) = '0'; --w; }
@@ -207,8 +208,7 @@ void fType(char *str) {
 				BCASE 'n': emit(10);
 				BCASE 'r': emit(13);
 				BCASE 't': emit( 9);
-			default:
-			emit(c);
+				default: emit(c);
 		}
 		} else if (c== '%') {
 			c = *(str++);
@@ -220,8 +220,7 @@ void fType(char *str) {
 				BCASE 'q': emit('"');
 				BCASE 's': zType((char *)pop());
 				BCASE 'x': iToA(pop(), 16, 0); break;
-			default:
-				emit(c);
+				default: emit(c);
 			}
 		} else {
 			emit(c);
@@ -264,8 +263,8 @@ void dwcInit() {
 	NVP_T nv[] = {
 		{ "version",  VERSION },          { "text-color", (cell)&text_color },
 		{ "cursor-x", (cell)&cursor_x },  { "cursor-y",   (cell)&cursor_y },
-		{ "kbd-head", (cell)&kbd_head },  { "kbd-tail",   (cell)&kbd_tail },
-		{ "(ticks)",  (cell)&sys_ticks },
+		{ "(kbd-i)",  (cell)&kbd_head },  { "(kbd-o)",    (cell)&kbd_tail },
+		{ "(ticks)",  (cell)&sys_ticks }, { "de-sz",      (cell)sizeof(DE_T)},
 		{ "(h)",      (cell)&here },      { "(l)",        (cell)&last },
 		{ "(lsp)",    (cell)&lsp },       { "lstk",       (cell)&lstk[0] },
 		{ "(rsp)",    (cell)&rsp },       { "rstk",       (cell)&rstk[0] },
@@ -273,9 +272,19 @@ void dwcInit() {
 		{ "(sp)",     (cell)&dsp },       { "stk",        (cell)&dstk[0] },
 		{ "state",    (cell)&state },     { "base",       (cell)&base },
 		{ "mem",      (cell)&mem[0] },    { "mem-sz",     (cell)MEM_SZ },
-		{ ">in",      (cell)&toIn},       { "de-sz",      (cell)sizeof(DE_T)},
-		{ "cell",     (cell)CELL_SZ },    { 0, 0 }
+		{ ">in",      (cell)&toIn},       { "cell",       (cell)CELL_SZ },
+		{ 0, 0 }
 	};
 	for (int i = 0; nv[i].name; i++) { addLit(nv[i].name, nv[i].value); }
 	for (int i = 0; prims[i].name; i++) { addPrim(prims[i].name, prims[i].value); }
+}
+
+void dwcRun() {
+    dwcInit();
+    outer(DWC_SRC);
+    while (1) {
+		if (state != COMPILE) { state = INTERPRET; }
+		zType((state == COMPILE) ? " ... "  : " ok\n");
+		outer("last 1024 - dup 256 accept drop space outer");
+	}
 }
