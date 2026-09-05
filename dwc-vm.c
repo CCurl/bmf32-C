@@ -24,6 +24,8 @@
 	X(FET,    "@",        TOS = *(cell*)TOS; ) \
 	X(CSTO,   "c!",       t = pop(); n = pop(); *(byte*)t = (byte)n; ) \
 	X(CFET,   "c@",       TOS = *(byte*)TOS; ) \
+	X(WFET,   "w@",       TOS = *(uint16_t *)TOS; ) \
+	X(WSTO,   "w!",       t = pop(); n = pop(); *(uint16_t *)t = (uint16_t)n; ) \
 	X(RTO,    ">r",       rpush(pop()); ) \
 	X(RAT,    "r@",       push(rstk[rsp]); ) \
 	X(RFROM,  "r>",       push(rpop()); ) \
@@ -63,13 +65,12 @@
 	X(OUTER,  "outer",    t = pop(); outer((char*)t); ) \
 	X(MOVE,   "cmove",    t = pop(); n = pop(); memmove((void*)n, (void*)pop(), t); ) \
 	X(SLEN,   "s-len",    TOS = strlen((char*)TOS); ) \
+	X(SEQI,   "s-eqi",    t = pop(); TOS = (strEqI((char*)TOS, (char*)t)) ? -1 : 0; ) \
 	X(NWB,    ".nwb",     t=pop(); n=pop(); iToA(pop(), t, n); ) \
 	X(SEE,    "see",      doSee(); ) \
 	X(DISKRD, "disk-rd",  t = pop(); n = pop(); ata_read_block(t, (void*)n); ) \
 	X(DISKWT, "disk-wt",  t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
 	X(TOXY,   "->xy",     t = pop(); n = pop(); vga_set_xy(n, t); ) \
-	X(WFET,   "w@",       TOS = *(uint16_t *)TOS; ) \
-	X(WSTO,   "w!",       t = pop(); n = pop(); *(uint16_t *)t = (uint16_t)n; ) \
 
 enum { PRIMS(X1) LASTOP };
 
@@ -207,8 +208,7 @@ void fType(char *str) {
 				BCASE 'n': emit(10);
 				BCASE 'r': emit(13);
 				BCASE 't': emit( 9);
-			default:
-			emit(c);
+				default: emit(c);
 		}
 		} else if (c== '%') {
 			c = *(str++);
@@ -220,8 +220,7 @@ void fType(char *str) {
 				BCASE 'q': emit('"');
 				BCASE 's': zType((char *)pop());
 				BCASE 'x': iToA(pop(), 16, 0); break;
-			default:
-				emit(c);
+				default: emit(c);
 			}
 		} else {
 			emit(c);

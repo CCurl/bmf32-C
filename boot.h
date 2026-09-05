@@ -37,8 +37,19 @@
 : const ( n-- ) add-word (lit) , , (exit) , ; \
 : val   ( -- ) 0 const ;   ( runtime: --n ) \
 : (val) ( -- ) here 2 - ->code const ;   ( runtime: --a ) \
+ \
 : kb ( n--m ) 1024 * ; \
 : mb ( n--m ) kb kb ; \
+ \
+( Disk blocks are 512 bytes ) \
+( Forth blocks are 1024 bytes ) \
+: blk-rd ( addr blk#-- ) dup + over over disk-rd 1+ >r 512 + r> disk-rd ; \
+: blk-wt ( addr blk#-- ) dup + over over disk-wt 1+ >r 512 + r> disk-wt ; \
+ \
+14 mb mem + const ram-disk \
+: load ( n-- ) +L x! x@ kb ram-disk + y! \
+    y@ x@ blk-rd  0 y@ 1023 + c! \
+    y@ -L outer ; \
  \
 mem mem-sz + const dict-end \
 32 ->code const (vh) \
@@ -68,15 +79,15 @@ vars (vh) ! \
 : c!z ( b-- ) z@ c! ;     : c!z+ ( b-- ) z@+ c! ;    : c!z- ( b-- ) z@- c! ; \
  \
 ( Temporary stack ) \
-32 cells var tstk \
-val tsp  (val) (tsp) \
-: t!  ( n-- ) tsp cells tstk + ! ; \
-: t@  ( --n ) tsp cells tstk + @ ; \
-: t@+ ( --n ) t@ dup 1+ t! ; \
-: >t  ( n-- ) tsp 1+ 31 and (tsp) ! t! ; \
-: t>  ( --n ) t@ tsp 1- 31 and (tsp) ! ; \
-: tdrop ( -- ) t> drop ; inline \
-: t++ ( -- )  t@ 1+ t! ; inline \
+32 cells  var   tstk \
+val tsp   (val) (tsp) \
+: t!    ( n-- ) tsp cells tstk + ! ; \
+: t@    ( --n ) tsp cells tstk + @ ; \
+: t@+   ( --n ) t@ dup 1+ t! ; \
+: >t    ( n-- ) tsp 1+ 31 and (tsp) ! t! ; \
+: t>    ( --n ) t@ tsp 1- 31 and (tsp) ! ; \
+: tdrop ( -- )  t> drop ; inline \
+: t++   ( -- )  t@ 1+ t! ; inline \
  \
 ( Strings ) \
 : compiling? ( --n ) state @ 1 = ; \
@@ -216,19 +227,7 @@ cell var t4   cell var t5   cell var t6 \
 : vga ( --a ) $B8000 ; \
 : cls ( -- ) vga 2000 $0F20 wfill  0 0 ->xy ; \
  \
-( test / temp ) \
-: bm ( mb -- ) 1000 dup * * timer swap for next timer swap - . ; \
- \
-( Disk blocks are 512 bytes ) \
-( Forth blocks are 1024 bytes ) \
-: blk-rd ( addr blk#-- ) 2* 2dup disk-rd 1+ >t 512 + t> disk-rd ; \
-: blk-wt ( addr blk#-- ) 2* 2dup disk-wt 1+ >t 512 + t> disk-wt ; \
 cell var block \
- \
-14 mb mem + const ram-disk \
-: load ( n-- ) +L1 x@ kb ram-disk + y! \
-    y@ x@ blk-rd  0 y@ 1023 + c! \
-    y@ -L outer ; \
  \
 ( Editor ) \
 1 kb var ed-blk \
@@ -303,4 +302,8 @@ cell var block \
 : .version ( -- ) version <# # # #. # # #. # # #s #> ztype ; \
 : .si .\" bmf32-C v\" .version .f\" \\n\\nhttps://github.com/CCurl/bmf32-C\" ; \
 marker .si .f\" \\n\\nHello.\" \
+ \
+( test / temp ) \
+: bm ( mb -- ) 1000 dup * * timer swap for next timer swap - . ; \
+ \
 "

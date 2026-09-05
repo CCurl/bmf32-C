@@ -367,7 +367,7 @@ static char keyboard_translate_scancode(uint8_t scancode) {
     }
 }
 
-/* Read character from keyboard buffer (non-blocking) */
+/* Read one character from the keyboard buffer (non-blocking) */
 int keyboard_get_char(void) {
     while (kbd_head != kbd_tail) {
         uint8_t scancode = (uint8_t)keyboard_buffer[kbd_tail];
@@ -410,6 +410,7 @@ int keyboard_get_char(void) {
     return -1;  /* No character available */
 }
 
+/* Read one character from the keyboard buffer (blocking) */
 int key(void) {
     int c = -1;
     while (c < 0) { c = keyboard_get_char(); }
@@ -418,37 +419,37 @@ int key(void) {
 
 // Serial port routines =========================================================
 /* Initialize serial port for debugging */
-// void serial_init(void) {
-//     uint16_t port = 0x3F8; /* COM1 */
-//     
-//     outb(port + 1, 0x00); /* Disable interrupts */
-//     outb(port + 3, 0x80); /* Enable divisor latch */
-//     outb(port + 0, 0x01); /* Set divisor to 1 (115200 baud) */
-//     outb(port + 1, 0x00);
-//     outb(port + 3, 0x03); /* 8 bits, no parity, 1 stop bit */
-//     outb(port + 2, 0xC7); /* Enable FIFO */
-//     outb(port + 4, 0x0B); /* Set DTR and RTS */
-// }
-// 
+void serial_init(void) {
+    uint16_t port = 0x3F8; /* COM1 */
+    
+    outb(port + 1, 0x00); /* Disable interrupts */
+    outb(port + 3, 0x80); /* Enable divisor latch */
+    outb(port + 0, 0x01); /* Set divisor to 1 (115200 baud) */
+    outb(port + 1, 0x00);
+    outb(port + 3, 0x03); /* 8 bits, no parity, 1 stop bit */
+    outb(port + 2, 0xC7); /* Enable FIFO */
+    outb(port + 4, 0x0B); /* Set DTR and RTS */
+}
+
 /* Write a character to serial port */
-// void serial_emit(char c) {
-//     uint16_t port = 0x3F8; /* COM1 */
-//     
-//     /* Wait for transmit buffer to be empty */
-//     while ((inb(port + 5) & 0x20) == 0);
-//     
-//     outb(port, c);
-// }
+void serial_emit(char c) {
+    uint16_t port = 0x3F8; /* COM1 */
+    
+    /* Wait for transmit buffer to be empty */
+    while ((inb(port + 5) & 0x20) == 0);
+    
+    outb(port, c);
+}
 
 /* Write a string to serial port */
-// void serial_zType(const char *str) {
-//     for (int i = 0; str[i] != '\0'; i++) {
-//         serial_emit(str[i]);
-//         if (str[i] == '\n') {
-//             serial_emit('\r');
-//         }
-//     }
-// }
+void serial_zType(const char *str) {
+    for (int i = 0; str[i] != '\0'; i++) {
+        serial_emit(str[i]);
+        if (str[i] == '\n') {
+            serial_emit('\r');
+        }
+    }
+}
 
 // Disk routines =========================================================
 /* ATA/IDE PIO helper functions */
@@ -601,11 +602,12 @@ void vga_clear(void) {
     vga_set_xy(0,0);
 }
 
+// Kernel main =========================================================
 /* Main kernel entry point */
 void kernel_main(void) {
     /* Initialize hardware */
     vga_clear();
-    // serial_init();
+    serial_init();
     gdt_init();
     idt_init();
     pic_init();
@@ -614,9 +616,7 @@ void kernel_main(void) {
     /* Register interrupt handlers */
     register_interrupt_handler(32, (void (*)(void))timer_handler);  /* IRQ0 = vector 32 */
     register_interrupt_handler(33, (void (*)(void))keyboard_handler);  /* IRQ1 = vector 33 */
-    
-    /* Enable interrupts */
-    sti();
+    sti();     /* Enable interrupts */
 
     dwcRun();  /* Start the Forth-like interpreter */
 }
