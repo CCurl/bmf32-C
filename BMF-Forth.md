@@ -75,7 +75,7 @@ The VM uses classic Forth-style stack notation:
 | `emit` | `c --` | Emit one character to the VGA console. |
 | `add-word` | `--` | Add a new dictionary entry from the input stream. |
 | `outer` | `addr --` | Interpret a string from memory as Forth input. |
-| `cmove` | `count src dst --` | Copy `count` bytes from `src` to `dst` using `memmove()`. |
+| `cmove` | `count src dst --` | Copy `count` bytes from `src` to `dst` using `memcpy()`. |
 | `s-len` | `addr -- len` | Return the length of a C string at `addr`. |
 | `.nwb` | `n width base --` | Print a number using a given width and base. |
 | `see` | `--` | Display the definition of the most recent word found by the dictionary scanner. |

@@ -54,7 +54,7 @@ extern void zType(const char *str);
 extern void emit(const char ch);
 extern int  key();
 extern char *strcpy(char *a, const char *b);
-extern void *memmove(void *dest, const void *src, cell n);
+extern void *memcpy(void *dest, const void *src, cell n);
 extern int  strlen(const char *a);
 extern int  strEqI(const char *a, const char *b);
 

@@ -63,7 +63,7 @@
 	X(EMIT,   "emit",     emit((char)pop()); ) \
 	X(ADDW,   "add-word", addToDict(0); ) \
 	X(OUTER,  "outer",    t = pop(); outer((char*)t); ) \
-	X(MOVE,   "cmove",    t = pop(); n = pop(); memmove((void*)n, (void*)pop(), t); ) \
+	X(MOVE,   "cmove",    t = pop(); n = pop(); memcpy((void*)n, (void*)pop(), t); ) \
 	X(SLEN,   "s-len",    TOS = strlen((char*)TOS); ) \
 	X(SEQI,   "s-eqi",    t = pop(); TOS = (strEqI((char*)TOS, (char*)t)) ? -1 : 0; ) \
 	X(NWB,    ".nwb",     t=pop(); n=pop(); iToA(pop(), t, n); ) \

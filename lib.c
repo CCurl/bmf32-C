@@ -26,15 +26,7 @@ int strEqI(const char *a, const char *b) {
     return *a == *b;
 }
 
-// IDK why the build fails without memcpy because we don't call it.
 void *memcpy(void *dest, const void *src, cell num) {
-    uint8_t *d = (uint8_t *)dest;
-    const uint8_t *s = (const uint8_t *)src;
-    for (cell i = 0; i < num; ++i) { *(d++) = *(s++); }
-    return dest;
-}
-
-void *memmove(void *dest, const void *src, cell num) {
     uint8_t *d = (uint8_t *)dest;
     const uint8_t *s = (const uint8_t *)src;
     if (d == s || num == 0) { return dest; }
