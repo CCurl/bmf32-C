@@ -29,20 +29,22 @@ The VM uses classic Forth-style stack notation:
 | `njmpz` | `x --` | Like `jmpz`, but tests the top-of-data-stack value without removing it. |
 | `njmpnz` | `x --` | Like `jmpnz`, but tests the top-of-data-stack value without removing it. |
 | `ztype` | `addr --` | Print a NUL-terminated string from the address on the stack. |
-| `ftype` | `addr --` | Interpret a Forth-style string literal and expand escape sequences while printing to the console. This is the string-printing primitive used for embedded format-style text. |
+| `ftype` | `addr --` | This is the string-printing primitive used for embedded format-style text. |
 | `dup` | `x -- x x` | Duplicate the top item. |
 | `drop` | `x --` | Drop the top item. |
 | `swap` | `x1 x2 -- x2 x1` | Swap the top two items. |
 | `over` | `x1 x2 -- x1 x2 x1` | Copy the second item to the top. |
 | `!` | `addr value --` | Store a cell value at memory address `addr`. |
-| `@` | `addr -- value` | Fetch a cell from memory. |
+| `@` | `addr -- value` | Fetch a cell from `addr`. |
 | `c!` | `addr byte --` | Store a byte at `addr`. |
-| `c@` | `addr -- byte` | Fetch a byte from memory. |
+| `c@` | `addr -- byte` | Fetch a byte from `addr`. |
+| `w!` | `addr u16 --` | Store a 16-bit word at `addr`. |
+| `w@` | `addr -- u16` | Fetch a 16-bit word from `addr`. |
 | `>r` | `x --` | Move `x` from the data stack to the return stack. |
 | `r@` | `-- x` | Copy the top return-stack item to the data stack. |
-| `r>` | `-- x` | Move a value from the return stack to the data stack. |
-| `+L` | `--` | Increment the local stack pointer by 3 slots. |
-| `-L` | `--` | Decrement the local stack pointer by 3 slots. |
+| `r>` | `-- x` | Move the top of the return stack to the data stack. |
+| `+L` | `--` | Increment the local stack pointer by 3 slots (creates new x, y, z). |
+| `-L` | `--` | Decrement the local stack pointer by 3 slots (restores old x, y, z). |
 | `x!` | `value --` | Store to local variable `x`. |
 | `y!` | `value --` | Store to local variable `y`. |
 | `z!` | `value --` | Store to local variable `z`. |
@@ -70,37 +72,31 @@ The VM uses classic Forth-style stack notation:
 | `and` | `n1 n2 -- n1&n2` | Bitwise AND. |
 | `or` | `n1 n2 -- n1|n2` | Bitwise OR. |
 | `xor` | `n1 n2 -- n1^n2` | Bitwise XOR. |
-| `find` | `-- xt` | Search the dictionary for the next word and return its execution token. |
-| `key` | `-- c` | Read one character from the keyboard buffer. |
+| `find` | `-- de` | Search the dictionary for the next word and return a pointer to the dictionary entry. (xt, flags, len, name) |
+| `key` | `-- c` | Read one character from the keyboard buffer (blocking). |
 | `emit` | `c --` | Emit one character to the VGA console. |
 | `add-word` | `--` | Add a new dictionary entry from the input stream. |
 | `outer` | `addr --` | Interpret a string from memory as Forth input. |
-| `cmove` | `count src dst --` | Copy `count` bytes from `src` to `dst` using `memcpy()`. |
+| `cmove` | `src dst count --` | Copy `count` bytes from `src` to `dst` using `memcpy()`. |
 | `s-len` | `addr -- len` | Return the length of a C string at `addr`. |
+| `s-eqi` | `s1 s2 -- flag` | Preform a case insensitive string comparison of `s1` and `s2`. |
 | `.nwb` | `n width base --` | Print a number using a given width and base. |
 | `see` | `--` | Display the definition of the most recent word found by the dictionary scanner. |
 | `>t` | `x --` | Move `x` from the data stack to the temporary stack. |
 | `t@` | `-- x` | Copy the top temporary-stack item to the data stack. |
-| `t!` | `x --` | Store to temporary stack TOS |
-| `t>` | `-- x` | Move a value from the temporary stack to the data stack. |
-| `blk-r` | `addr blockNumber --` | Read one 512-byte sector from disk into `addr`. |
-| `blk-w` | `addr blockNumber --` | Write one 512-byte sector from `addr` to disk. |
-
-## Notes on control flow
-
-The VM uses an instruction stream stored in memory. A word may be compiled as a sequence of primitive opcodes, where each primitive is represented by a numeric token. The `jmp`, `jmpz`, `jmpnz`, and `next` primitives are the main control-flow building blocks.
-
-`for` / `next` implement a simple counted loop:
-
-- `for` initializes loop state with the loop limit and the current instruction pointer
-- `i` pushes the current loop index
-- `next` increments the loop counter and jumps back while the loop continues
+| `t!` | `x --` | Store `x` to temporary stack TOS |
+| `t>` | `-- x` | Move `x`` from the temporary stack to the data stack. |
+| `disk-rd` | `addr n --` | Read the nth 512-byte sector from disk into `addr`. |
+| `disk-wt` | `addr n --` | Write the nth 512-byte sector from `addr` to disk. |
+| `->xy` | `x y --` | Set the VGA cursor position to the given `x, y` coordinates. |
 
 ## `ftype` details
 
-`ftype` parses a string from memory and emits it one character at a time. Unlike `ztype`, which prints a plain NUL-terminated string verbatim, `ftype` interprets escape sequences as control characters.
+FTYPE is the VM’s escape-aware, stack-driven string emitter, while `ztype` is the plain output primitive for raw strings.
 
-The implementation in `dwc-vm.c` handles these escapes:
+`ftype` parses a string and emits it one character at a time. Unlike `ztype`, which prints a plain NUL-terminated string verbatim, `ftype` interprets escape sequences as control characters.
+
+The implementation handles these escapes:
 
 - `\b` -> ASCII 8 (backspace)
 - `\e` -> ASCII 27 (ESC)
@@ -117,34 +113,10 @@ The `%` operator is handled by `ftype` as a formatting escape, not a literal per
 - `%q` -> emit a double-quote character (`"`) 
 - `%s` -> pop an address and print the NUL-terminated string at that address (`zType((char *)pop())`) 
 - `%x` -> pop a value and print it in hexadecimal (`iToA(pop(), 16, 0)`) 
+- `%%` -> prints a `%`
 
-Important stack behavior: most `%` codes consume one value from the data stack before printing it. That means a format string such as:
-
-- `"count=%d\n"` expects a numeric value on the stack before the string is processed
-- `"value=%x\n"` expects a value on the stack before the string is processed
-- `"name=%s\n"` expects a string pointer on the stack before the string is processed
-
-Example behavior:
-
-- stack before: `42`
-- format: `"%d"`
-- result: `42`
-
-- stack before: `0x2A`
-- format: `"%x"`
-- result: `2A`
-
-- stack before: `addr_of_name`
-- format: `"%s"`
-- result: prints the string at that address
-
-This is the primitive used for formatted string output, especially when a word is composing text like:
-
-- `"hello\n"`
-- `"count=%d\n"`
-- `"value=%x\n"`
-
-In other words, `ftype` is the VM’s escape-aware, stack-driven string emitter, while `ztype` is the plain output primitive for raw C strings.
+Example:
+- `12 .f" count=%d\n"` prints `count=12` followed by a carriage return
 
 ## Number handling
 
