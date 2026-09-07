@@ -157,6 +157,7 @@ cell var (buf)
 : #>   ( n--a )  drop (neg) @ if '-' hold then (buf) @ ;
 : (.)  ( n-- )   <# #s #> ztype ;
 : .    ( n-- )   (.) space ;
+: ?    ( a-- )   @ . ;
 : .hex ( n-- )   2 $10 .nwb ;
 : .bin ( n-- )   8 %10 .nwb ;
 : .dec ( n-- )   0 #10 .nwb ;
@@ -232,7 +233,8 @@ cell var t4   cell var t5   cell var t6
 cell var block
 
 ( Editor )
-16 const rows       64 const cols
+16      const rows            64 const cols
+rows 1- const last-row   cols 1- const last-col
 rows cols * var ed-blk
 cols var yank-buf
 1 var isShow
@@ -241,29 +243,27 @@ cols var yank-buf
 : ed-norm ( -- ) ed-blk +L1 1024 for c@x if0 32 c!x then x++ next -L ;
 : ed-rd ( -- ) ed-blk block @ blk-rd ed-norm ;
 : ed-sv ( -- ) ed-blk block @ blk-wt ;
-: ?ed-show ( -- ) isShow c@ if0 exit then
-    cx cy ed-blk +L3  0 0 ->xy  0 isShow c!
-    rows for
-      cols for  c@z+ emit  next cr
-    next  x@ y@ ->xy  -L ;
-: ed-show! ( -- ) 1 isShow c! ?ed-show ;
+: ed-show! ( -- ) cx cy ed-blk +L3  0 0 ->xy
+    rows for z@ cols type cr z@ cols + z! next
+    x@ y@ ->xy  -L ;
+: ?ed-show ( -- ) isShow c@ if ed-show! then 0 isShow c! ;
 : ed->ftr  ( -- ) cy >t cx >t  0 rows ->xy ;
-: ed-.ftr  ( addr cy cx-- ) block @ .f" Block %d (%d,%d) %s   " ;
-: ed-ftr   ( addr-- ) cy cx ed->ftr  ed-.ftr  t> t> ->xy ;
+: .ftr  ( addr cy cx-- ) swap block @ .f" Block %d (%d,%d) %s   " ;
+: ed-ftr   ( addr-- ) cy cx ed->ftr  .ftr  t> t> ->xy ;
 : ed-clr   ( -- ) z"         " ed-ftr ;
-: ed-x!  ( -- ) cx 0 max cols 1- min cx! ;
-: ed-y!  ( -- ) cy 0 max rows 1- min cy! ;
+: ed-x!  ( -- ) cx 0 max last-col min cx! ;
+: ed-y!  ( -- ) cy 0 max last-row min cy! ;
 : ed->xy ( -- ) ed-x!  ed-y!  cx cy ->xy ;
 : ed-mv ( dx dy -- ) cursor-y +!  cursor-x +! ed->xy ;
 : clr-line ( y-- ) 0 swap ed-xya x! cols for 32 c!x+ next ed-show! ;
 : yank ( -- ) 0 cy ed-xya x! yank-buf y! cols for c@x+ c!y+ next ;
 : put  ( -- ) 0 cy ed-xya x! yank-buf y! cols for c@y+ c!x+ next ;
-: open-line ( -- ) cy rows 1- <
-    if 0 cy ed-xya dup cols + over 0 rows 1- ed-xya swap - cmove then
-    cy clr-line ed-show! ;
+: open-line ( -- ) cy last-row < if
+      0 cy ed-xya  dup cols +  over 0 last-row ed-xya swap - cmove
+    then cy clr-line ;
 : repl-1 ( -- ) z" -r-" ed-ftr key x! ed-clr
       x@ ascii? if x@ ed-pos c! x@ emit ed-x! then ;
-: ed-cr ( -- ) cy rows 1- < if cr then ;
+: ed-cr ( -- ) cy last-row < if cr then ;
 : repl-X ( -- ) z" -replace-" ed-ftr begin
       key x! 
       x@ 27 = if ed-clr exit then ( ESC => exit )
@@ -280,32 +280,35 @@ cols var yank-buf
     32 c!x -L ed-show! ;
 : del-eob ( -- ) +L ed-pos x! ed-blk 1023 + y!
     begin x@ 1+ c@ c!x+ x@ y@ < while
-    32 c!x -L ed-show! ;
+    -L ed-show! ;
 : del-eol ( -- ) +L ed-pos x! cy 1+ cols * ed-blk + 1- y!
     begin x@ 1+ c@ c!x+ x@ y@ < while
-    32 c!x -L ed-show! ;
-: del-line ( -- ) yank cy clr-line ;
+    -L ed-show! ;
+: del-line ( -- ) yank cy last-row < if
+      0 cy ed-xya >r  r@ cols +  r@  0 rows ed-xya r> - cmove
+    then last-row clr-line ;
 : ed-go ( -- )
+    x@  32 = if 'l' x! then
     x@ 'h' = if -1  0 ed-mv exit then
     x@ 'j' = if  0  1 ed-mv exit then
     x@ 'k' = if  0 -1 ed-mv exit then
     x@ 'l' = if  1  0 ed-mv exit then
-    x@  32 = if  1  0 ed-mv exit then
-    x@ 'I' = if ins-eob  exit then
+    x@  10 = if ed-cr exit then
     x@ 'i' = if ins-eol  exit then
-    x@ 'r' = if repl-1  exit then
-    x@ 'R' = if repl-X      exit then
+    x@ 'I' = if ins-eob  exit then
+    x@ 'r' = if repl-1   exit then
+    x@ 'R' = if repl-X   exit then
     x@ 'x' = if del-eol  exit then
     x@ 'X' = if del-eob  exit then
     x@ 'D' = if del-line exit then
-    x@ 'Y' = if yank exit then
+    x@ 'C' = if cy clr-line exit then
     x@ 'O' = if open-line exit then
     x@ 'P' = if put ed-show! exit then
-    x@  10 = if ed-cr exit then
+    x@ 'Y' = if yank exit then
     x@  19 = if ed-sv z" -saved-" ed-ftr 500 ms ed-clr exit then
 	x@ '+' = if ed-sv block @ 1+ 1023 min block ! ed-rd ed-show! exit then
 	x@ '-' = if ed-sv block @ 1-    0 max block ! ed-rd ed-show! exit then
-    x@ <# #s #> ed-ftr ;
+    x@ <# #s #> ed-ftr 250 ms ;
 : edit ( n-- ) +L block ! cls  ed-rd  1 isShow c!
     begin ?ed-show z" " ed-ftr  key x! 
       x@ 17 = if 0 rows 1+ ->xy -L exit then ( ctrl-q => exit )
