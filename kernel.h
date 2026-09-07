@@ -5,12 +5,6 @@
 extern int shift_pressed;
 extern int ctrl_pressed;
 
-/* VGA cursor position and text color */
-#define VGA_COLS   80
-#define VGA_ROWS   25
-extern int cursor_x;
-extern int cursor_y;
-extern int text_color;
 
 extern volatile uint32_t sys_ticks;
 
@@ -23,10 +17,19 @@ extern int keyboard_get_char(void);
 void pit_init(uint32_t hz);
 
 /* VGA API */
+/* VGA cursor position and text color */
 void emit(char c);
 void zType(const char *str);
 void vga_clear(void);
-void vga_set_cursor(int x, int y);
+void vga_set_cursor();
+void vga_set_xy(int x, int y);
+
+#define VGA_COLS   80
+#define VGA_ROWS   25
+extern int cursor_x;
+extern int cursor_y;
+extern int text_color;
+extern int setCur;
 
 /* Serial API */
 void serial_init(void);

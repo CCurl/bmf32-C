@@ -10,7 +10,7 @@
 #define LIT_MASK      0x40000000
 #define LIT_BITS      0x3FFFFFFF
 #define CELL_SZ                4
-#define NAME_SZ               26
+#define NAME_SZ               13
 #define cell             int32_t
 #define ucell           uint32_t
 #define NULL                   0
@@ -31,7 +31,7 @@
 #define L2            lstk[lsp-2]
 
 enum { INTERPRET=0, COMPILE=1, BYE=999 };
-typedef struct { ucell xt; byte fl; byte ln; char nm[NAME_SZ]; } DE_T;
+typedef struct { ucell xt; byte fl; byte ln; char nm[NAME_SZ+1]; } DE_T;
 typedef struct { char *name; ucell value; } NVP_T;
 
 // These are defined by dwc-vm.c
@@ -54,9 +54,8 @@ extern void zType(const char *str);
 extern void emit(const char ch);
 extern int  key();
 extern char *strcpy(char *a, const char *b);
-extern void *memmove(void *dest, const void *src, cell n);
+extern void *memcpy(void *dest, const void *src, cell n);
 extern int  strlen(const char *a);
 extern int  strEqI(const char *a, const char *b);
-extern void edit();
 
 #endif //  __DWC_VM_H__

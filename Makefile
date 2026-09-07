@@ -21,9 +21,8 @@ GRUBDIR = $(BOOTDIR)/grub
 KERNEL = $(BUILD_DIR)/kernel.elf
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
 ISO_IMAGE = $(BUILD_DIR)/os.iso
-OS_SUPPORT_OBJ = $(BUILD_DIR)/os.o
+LIB_OBJ = $(BUILD_DIR)/lib.o
 DWC_VM_OBJ = $(BUILD_DIR)/dwc-vm.o
-EDITOR_OBJ = $(BUILD_DIR)/editor.o
 DISK_IMAGE = $(BUILD_DIR)/disk.img
 
 # Default target
@@ -38,24 +37,20 @@ $(BUILD_DIR)/kernel.o: kernel.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) kernel.c -o $(BUILD_DIR)/kernel.o
 
 # Create boot.h from boot.f
-boot.h: boot.f block-01.fth
+boot.h: boot.fth block-01.fth
 	fwc
 
 # Compile OS-specific support
-$(OS_SUPPORT_OBJ): os.c boot.h | $(BUILD_DIR)
-	$(CC) $(CFLAGS) os.c -o $(OS_SUPPORT_OBJ)
+$(LIB_OBJ): lib.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) lib.c -o $(LIB_OBJ)
 
 # Compile the DWC VM
-$(DWC_VM_OBJ): dwc-vm.c dwc-vm.h | $(BUILD_DIR)
+$(DWC_VM_OBJ): dwc-vm.c dwc-vm.h boot.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) dwc-vm.c -o $(DWC_VM_OBJ)
 
-# Compile the editor
-$(EDITOR_OBJ): editor.c dwc-vm.h | $(BUILD_DIR)
-	$(CC) $(CFLAGS) editor.c -o $(EDITOR_OBJ)
-
 # Link kernel
-$(KERNEL): $(BUILD_DIR)/kernel.o $(OS_SUPPORT_OBJ) $(DWC_VM_OBJ) $(EDITOR_OBJ) *.[ch]
-	$(LD) $(LDFLAGS) -o $(KERNEL) $(BUILD_DIR)/kernel.o $(OS_SUPPORT_OBJ) $(DWC_VM_OBJ) $(EDITOR_OBJ)
+$(KERNEL): $(BUILD_DIR)/kernel.o $(LIB_OBJ) $(DWC_VM_OBJ) boot.h *.[ch]
+	$(LD) $(LDFLAGS) -o $(KERNEL) $(BUILD_DIR)/kernel.o $(LIB_OBJ) $(DWC_VM_OBJ)
 
 # Create bootable ISO image
 iso: $(KERNEL)
@@ -73,6 +68,9 @@ $(DISK_IMAGE): | $(BUILD_DIR)
 run: $(KERNEL) $(DISK_IMAGE)
 	$(QEMU) -kernel $(KERNEL) -drive file=$(DISK_IMAGE),if=ide,format=raw,media=disk -m 20M -serial stdio
 
+run-kvm: $(KERNEL) $(DISK_IMAGE)
+	$(QEMU) -machine accel=kvm -kernel $(KERNEL) -drive file=$(DISK_IMAGE),if=ide,format=raw,media=disk -m 20M -serial stdio
+
 # Run from ISO
 run-iso: iso
 	$(QEMU) -cdrom $(ISO_IMAGE) -m 20M -serial stdio -d guest_errors
@@ -83,6 +81,6 @@ debug: $(KERNEL)
 
 # Clean build artifacts
 clean:
-	rm -rf $(BUILD_DIR) boot.h
+	rm -rf $(BUILD_DIR)/*.o $(BUILD_DIR)/*.elf boot.h
 
 .PHONY: all iso run run-iso debug clean

@@ -18,18 +18,20 @@ A minimal bare-metal x86 kernel written in pure C and booted under QEMU. It incl
 ## Architecture
 
 ```text
-block-01.fth    - Translates boot.f -> boot.h using fwc
-boot.f          - Forth source code for the OS
-boot.h          - Auto-generated C header file of 'boot.f'
-dwc-vm.c        - Forth-style VM implementation
-dwc-vm.h        - VM interface and memory layout declarations
-kernel.c        - Kernel core: VGA, serial, PIC, keyboard, timer, IRQ setup
-kernel.h        - Extern functions for kernel.c
-LICENSE         - MIT license
-linker.ld       - Memory layout and ELF placement
-Makefile        - Build system
-os.c            - OS/runtime support layer and freestanding compatibility helpers
-README.md       - This file
+block-01.fth  - Translates boot.f -> boot.h using fwc
+BMF-boot.md   - Reference for the words in boot.fth
+BMF-Forth.md  - Reference for the primitived in the DWC VM
+boot.fth      - Forth source code for the OS
+boot.h        - Auto-generated C header file of 'boot.fth'
+dwc-vm.c      - Forth-style VM implementation
+dwc-vm.h      - VM interface and memory layout declarations
+kernel.c      - Kernel core: VGA, serial, PIC, keyboard, timer, IRQ setup
+kernel.h      - Extern functions for kernel.c
+lib.c         - OS/runtime support layer and freestanding compatibility helpers
+LICENSE       - MIT license
+linker.ld     - Memory layout and ELF placement
+Makefile      - Build system
+README.md     - This file
 ```
 
 ## VGA palette
@@ -154,15 +156,13 @@ This is the Forth VM used by the project. It includes:
 - A dictionary and primitive table
 - stack operations and compiled words
 - VM entry points like `outer()`, `inner()`, and `dwcInit()`
-- Primitive hooks for `emit`, `ztype`, `key`, `key?`, and `timer`
+- Primitive hooks for `emit`, `ztype`, and `key`
 
-### os.c
+### lib.c
 
 This file provides the minimal runtime glue needed for a freestanding build, including:
 
-- libc-like string/memory helpers
-- Keyboard and timer wrappers used by the VM
-- `emit` / `ztype` output support
+- libc-like string/memory helpers used by the VM or CLANG
 
 ### Raw disk / block device
 
@@ -224,6 +224,6 @@ sudo apt-get install grub-pc-bin xorriso
 - [x86 I/O Ports](https://wiki.osdev.org/I/O_Ports)
 - [VGA Text Mode](https://wiki.osdev.org/Text_mode)
 
-## License
+## License (MIT)
 
-Public Domain - use freely for educational purposes.
+Public Domain - use freely.

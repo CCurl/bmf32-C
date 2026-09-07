@@ -35,10 +35,21 @@
 ( val and (val) define a very efficient variable mechanism ) \
 ( Usage:  val a@   (val) (a)   : a! (a) ! ; ) \
 : const ( n-- ) add-word (lit) , , (exit) , ; \
-: val   ( -- ) 0 const ; \
-: (val) ( -- ) here 2 - ->code const ; \
+: val   ( -- ) 0 const ;   ( runtime: --n ) \
+: (val) ( -- ) here 2 - ->code const ;   ( runtime: --a ) \
+ \
 : kb ( n--m ) 1024 * ; \
 : mb ( n--m ) kb kb ; \
+ \
+( Disk blocks are 512 bytes ) \
+( Forth blocks are 1024 bytes ) \
+: blk-rd ( addr blk#-- ) dup + over over disk-rd 1+ >r 512 + r> disk-rd ; \
+: blk-wt ( addr blk#-- ) dup + over over disk-wt 1+ >r 512 + r> disk-wt ; \
+ \
+14 mb mem + const ram-disk \
+: load ( n-- ) +L x! x@ kb ram-disk + y! \
+    y@ x@ blk-rd  0 y@ 1023 + c! \
+    y@ -L outer ; \
  \
 mem mem-sz + const dict-end \
 32 ->code const (vh) \
@@ -67,36 +78,38 @@ vars (vh) ! \
 : c@z ( --b ) z@ c@ ;     : c@z+ ( --b ) z@+ c@ ;    : c@z- ( --b ) z@- c@ ; \
 : c!z ( b-- ) z@ c! ;     : c!z+ ( b-- ) z@+ c! ;    : c!z- ( b-- ) z@- c! ; \
  \
-( Temporary stack ) \
-32 cells var tstk \
-val tsp  (val) (tsp) \
-: t! ( n-- ) tsp cells tstk + ! ; \
-: t@ ( --n ) tsp cells tstk + @ ; \
-: >t ( n-- ) tsp 1+ 31 and (tsp) ! t! ; \
-: t> ( --n ) t@ tsp 1- 31 and (tsp) ! ; \
+( A circular stack ) \
+32 cells  var   tstk \
+val tsp   (val) (tsp) \
+: t!    ( n-- ) tsp cells tstk + ! ; \
+: t@    ( --n ) tsp cells tstk + @ ; \
+: t@+   ( --n ) t@ dup 1+ t! ; \
+: >t    ( n-- ) tsp 1+ 31 and (tsp) ! t! ; \
+: t>    ( --n ) t@ tsp 1- 31 and (tsp) ! ; \
+: tdrop ( -- )  t> drop ; inline \
+: t++   ( -- )  t@ 1+ t! ; inline \
  \
 ( Strings ) \
-: compiling? ( --n ) state @ 1 = ; \
+: comp? ( --n ) state @ 1 = ; \
 : (\") ( --a ) +L vhere dup z! x! 1 >in +! \
     begin \
         >in @ c@ y! 1 >in +! \
         y@ 0 = y@ '\"' = or \
         if  0 c!x+  z@ \
-            compiling? if (lit) , , x@ (vh) ! then \
+            comp? if (lit) , , x@ (vh) ! then \
             -L exit \
         then \
         y@ c!x+ \
     again ; \
  \
 : z\" ( str--addr ) (\") ; immediate \
-: .\" ( str-- ) (\") compiling? if (ztype) , exit then ztype ; immediate \
-: .f\" ( str-- ) (\") compiling? if (ftype) , exit then ftype ; immediate \
+: .\" ( str-- ) (\") comp? if (ztype) , exit then ztype ; immediate \
+: .f\" ( str-- ) (\") comp? if (ftype) , exit then ftype ; immediate \
  \
 ( More core words ) \
 : [ ( -- ) 0 state ! ; immediate  ( 0 = INTERPRET ) \
 : ] ( -- ) 1 state ! ;            ( 1 = COMPILE ) \
 : rdrop ( -- ) r> drop ; inline \
-: tdrop ( -- ) t> drop ; inline \
 : tuck  ( a b--b a b )   swap over ; inline \
 : nip   ( a b--b )       swap drop ; inline \
 : ?dup ( n--n n|0 )  -if dup then ; \
@@ -113,7 +126,7 @@ val tsp  (val) (tsp) \
 : <> ( a b--f ) = 0= ; inline \
 : type ( a n-- ) for dup c@ emit 1+ next drop ; \
 : btwi ( n l h--f ) >t over <= swap t> <= and ; \
-: key? ( --f )  kbd-head @ kbd-tail @ <> ; \
+: key? ( --f )  (kbd-i) @ (kbd-o) @ <> ; \
 : ascii? ( c--f )  32 127 btwi ; \
 : com    ( n--n' ) -1 xor ; \
 : negate ( n--n' ) com 1+ ; \
@@ -144,6 +157,7 @@ cell var (buf) \
 : #>   ( n--a )  drop (neg) @ if '-' hold then (buf) @ ; \
 : (.)  ( n-- )   <# #s #> ztype ; \
 : .    ( n-- )   (.) space ; \
+: ?    ( a-- )   @ . ; \
 : .hex ( n-- )   2 $10 .nwb ; \
 : .bin ( n-- )   8 %10 .nwb ; \
 : .dec ( n-- )   0 #10 .nwb ; \
@@ -210,22 +224,102 @@ cell var t4   cell var t5   cell var t6 \
         z@ $10 = if x@ $10 - t1 0 z! then \
     next -L ; \
  \
+( Screen ) \
 : vga ( --a ) $B8000 ; \
 : cls ( -- ) vga 2000 $0F20 wfill  0 0 ->xy ; \
+: cx ( -- x ) cursor-x @ ;  : cx! cursor-x ! ; \
+: cy ( -- y ) cursor-y @ ;  : cy! cursor-y ! ; \
  \
-( test / temp ) \
-: bm ( mb -- ) 1000 dup * * timer swap for next timer swap - . ; \
+cell var block \
  \
-( Disk blocks are 512 bytes ) \
-( Forth blocks are 1024 bytes ) \
-: blk-rd ( addr blk-- ) 2* 2dup disk-rd 1+ >t 512 + t> disk-rd ; \
-: blk-wt ( addr blk-- ) 2* 2dup disk-wt 1+ >t 512 + t> disk-wt ; \
- \
-: read-all ( -- ) 3 mb 24 for \
-        dup i blk-rd 1 kb + \
-    next drop ; \
+( Editor ) \
+16      const rows            64 const cols \
+rows 1- const last-row   cols 1- const last-col \
+rows cols * var ed-blk \
+cols var yank-buf \
+1 var isShow \
+: ed-xya ( x y--addr ) cols * + ed-blk + ; \
+: ed-pos ( --pos ) cx cy ed-xya ; \
+: ed-norm ( -- ) ed-blk +L1 1024 for c@x if0 32 c!x then x++ next -L ; \
+: ed-rd ( -- ) ed-blk block @ blk-rd ed-norm ; \
+: ed-sv ( -- ) ed-blk block @ blk-wt ; \
+: ed-show! ( -- ) cx cy ed-blk +L3  0 0 ->xy \
+    rows for z@ cols type cr z@ cols + z! next \
+    x@ y@ ->xy  -L ; \
+: ?ed-show ( -- ) isShow c@ if ed-show! then 0 isShow c! ; \
+: ed->ftr  ( -- ) cy >t cx >t  0 rows ->xy ; \
+: .ftr  ( addr cy cx-- ) swap block @ .f\" Block %d (%d,%d) %s   \" ; \
+: ed-ftr   ( addr-- ) cy cx ed->ftr  .ftr  t> t> ->xy ; \
+: ed-clr   ( -- ) z\"         \" ed-ftr ; \
+: ed-x!  ( -- ) cx 0 max last-col min cx! ; \
+: ed-y!  ( -- ) cy 0 max last-row min cy! ; \
+: ed->xy ( -- ) ed-x!  ed-y!  cx cy ->xy ; \
+: ed-mv ( dx dy -- ) cursor-y +!  cursor-x +! ed->xy ; \
+: clr-line ( y-- ) 0 swap ed-xya x! cols for 32 c!x+ next ed-show! ; \
+: yank ( -- ) 0 cy ed-xya x! yank-buf y! cols for c@x+ c!y+ next ; \
+: put  ( -- ) 0 cy ed-xya x! yank-buf y! cols for c@y+ c!x+ next ; \
+: open-line ( -- ) cy last-row < if \
+      0 cy ed-xya  dup cols +  over 0 last-row ed-xya swap - cmove \
+    then cy clr-line ; \
+: repl-1 ( -- ) z\" -r-\" ed-ftr key x! ed-clr \
+      x@ ascii? if x@ ed-pos c! x@ emit ed-x! then ; \
+: ed-cr ( -- ) cy last-row < if cr then ; \
+: repl-X ( -- ) z\" -replace-\" ed-ftr begin \
+      key x!  \
+      x@ 27 = if ed-clr exit then ( ESC => exit ) \
+      x@ 10 = if ed-cr then \
+      x@  8 = if x@ emit then \
+      x@ ascii? if x@ ed-pos c! x@ emit ed-x! then \
+    again ; \
+: ins-eob ( -- ) ed-pos ed-blk 1023 + +L2 y@- z! \
+    begin c@y- c!z- y@ x@ < until \
+    32 c!z -L ed-show! ; \
+: ins-eol ( -- ) +L ed-pos x! \
+    cy 1+ cols * ed-blk + 1- y! y@- z! \
+    begin c@y- c!z- y@ x@ < until \
+    32 c!x -L ed-show! ; \
+: del-eob ( -- ) +L ed-pos x! ed-blk 1023 + y! \
+    begin x@ 1+ c@ c!x+ x@ y@ < while \
+    -L ed-show! ; \
+: del-eol ( -- ) +L ed-pos x! cy 1+ cols * ed-blk + 1- y! \
+    begin x@ 1+ c@ c!x+ x@ y@ < while \
+    -L ed-show! ; \
+: del-line ( -- ) yank cy last-row < if \
+      0 cy ed-xya >r  r@ cols +  r@  0 rows ed-xya r> - cmove \
+    then last-row clr-line ; \
+: ed-go ( -- ) \
+    x@  32 = if 'l' x! then \
+    x@ 'h' = if -1  0 ed-mv exit then \
+    x@ 'j' = if  0  1 ed-mv exit then \
+    x@ 'k' = if  0 -1 ed-mv exit then \
+    x@ 'l' = if  1  0 ed-mv exit then \
+    x@  10 = if ed-cr exit then \
+    x@ 'i' = if ins-eol  exit then \
+    x@ 'I' = if ins-eob  exit then \
+    x@ 'r' = if repl-1   exit then \
+    x@ 'R' = if repl-X   exit then \
+    x@ 'x' = if del-eol  exit then \
+    x@ 'X' = if del-eob  exit then \
+    x@ 'D' = if del-line exit then \
+    x@ 'C' = if cy clr-line exit then \
+    x@ 'O' = if open-line exit then \
+    x@ 'P' = if put ed-show! exit then \
+    x@ 'Y' = if yank exit then \
+    x@  19 = if ed-sv z\" -saved-\" ed-ftr 500 ms ed-clr exit then \
+	x@ '+' = if ed-sv block @ 1+ 1023 min block ! ed-rd ed-show! exit then \
+	x@ '-' = if ed-sv block @ 1-    0 max block ! ed-rd ed-show! exit then \
+    x@ <# #s #> ed-ftr 250 ms ; \
+: edit ( n-- ) +L block ! cls  ed-rd  1 isShow c! \
+    begin ?ed-show z\" \" ed-ftr  key x!  \
+      x@ 17 = if 0 rows 1+ ->xy -L exit then ( ctrl-q => exit ) \
+      ed-go \
+    again ; \
+: ed block @ edit ; \
  \
 : .version ( -- ) version <# # # #. # # #. # # #s #> ztype ; \
 : .si .\" bmf32-C v\" .version .f\" \\n\\nhttps://github.com/CCurl/bmf32-C\" ; \
 marker .si .f\" \\n\\nHello.\" \
+ \
+( test / temp ) \
+: bm ( mb -- ) 1000 dup * * timer swap for next timer swap - . ; \
 "
