@@ -130,7 +130,11 @@ DE_T *addToDict(char *w) {
 	DE_T *dp = last-1;
 	if (isTmpW(w)) { dp = &tmpWords[w[1]-'0']; dp->xt = here; return dp; }
 	int ln = (int)strlen(w);
-	if (NAME_SZ <= ln) { ln = NAME_SZ-1; w[ln] = 0; }
+	if (NAME_SZ < ln) {
+		zType("-'"); zType(w); zType("' truncated-\n");
+		ln = NAME_SZ-1;
+		w[ln] = 0;
+	}
 	if (ln == 0) { return (DE_T*)0; }
 	*dp = (DE_T){ (ucell)here, 0, ln };
 	strcpy(dp->nm, w);
@@ -261,7 +265,7 @@ void outer(const char *src) {
 void dwcInit() {
 	NVP_T prims[] = { PRIMS(X3) { 0, 0 } };
 	NVP_T nv[] = {
-		{ "version",  VERSION },          { "text-color", (cell)&text_color },
+		{ "version",  VERSION },          { "txt-color",  (cell)&text_color },
 		{ "cursor-x", (cell)&cursor_x },  { "cursor-y",   (cell)&cursor_y },
 		{ "(kbd-i)",  (cell)&kbd_head },  { "(kbd-o)",    (cell)&kbd_tail },
 		{ "(ticks)",  (cell)&sys_ticks }, { "de-sz",      (cell)sizeof(DE_T)},

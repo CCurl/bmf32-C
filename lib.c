@@ -29,11 +29,17 @@ int strEqI(const char *a, const char *b) {
 void *memcpy(void *dest, const void *src, cell num) {
     uint8_t *d = (uint8_t *)dest;
     const uint8_t *s = (const uint8_t *)src;
-    if (d == s || num == 0) { return dest; }
     if (d < s) {
         for (cell i = 0; i < num; ++i) { *(d++) = *(s++); }
-    } else {
+    } else if (d > s) {
         for (cell i = num-1; i >= 0; --i) { d[i] = s[i]; }
     }
     return dest;
 }
+/*
+void *memset(void *dest, int value, cell num) {
+    uint8_t *d = (uint8_t *)dest;
+    for (cell i = 0; i < num; ++i) { *(d++) = (uint8_t)value; }
+    return dest;
+}
+*/

@@ -78,7 +78,7 @@ vars (vh) !
 : c@z ( --b ) z@ c@ ;     : c@z+ ( --b ) z@+ c@ ;    : c@z- ( --b ) z@- c@ ;
 : c!z ( b-- ) z@ c! ;     : c!z+ ( b-- ) z@+ c! ;    : c!z- ( b-- ) z@- c! ;
 
-( Temporary stack )
+( A circular stack )
 32 cells  var   tstk
 val tsp   (val) (tsp)
 : t!    ( n-- ) tsp cells tstk + ! ;
@@ -90,21 +90,21 @@ val tsp   (val) (tsp)
 : t++   ( -- )  t@ 1+ t! ; inline
 
 ( Strings )
-: compiling? ( --n ) state @ 1 = ;
+: comp? ( --n ) state @ 1 = ;
 : (") ( --a ) +L vhere dup z! x! 1 >in +!
     begin
         >in @ c@ y! 1 >in +!
         y@ 0 = y@ '"' = or
         if  0 c!x+  z@
-            compiling? if (lit) , , x@ (vh) ! then
+            comp? if (lit) , , x@ (vh) ! then
             -L exit
         then
         y@ c!x+
     again ;
 
 : z" ( str--addr ) (") ; immediate
-: ." ( str-- ) (") compiling? if (ztype) , exit then ztype ; immediate
-: .f" ( str-- ) (") compiling? if (ftype) , exit then ftype ; immediate
+: ." ( str-- ) (") comp? if (ztype) , exit then ztype ; immediate
+: .f" ( str-- ) (") comp? if (ftype) , exit then ftype ; immediate
 
 ( More core words )
 : [ ( -- ) 0 state ! ; immediate  ( 0 = INTERPRET )
@@ -226,17 +226,21 @@ cell var t4   cell var t5   cell var t6
 ( Screen )
 : vga ( --a ) $B8000 ;
 : cls ( -- ) vga 2000 $0F20 wfill  0 0 ->xy ;
+: cx ( -- x ) cursor-x @ ;  : cx! cursor-x ! ;
+: cy ( -- y ) cursor-y @ ;  : cy! cursor-y ! ;
 
 cell var block
 
 ( Editor )
-1 kb var ed-blk
 16 const rows       64 const cols
+rows cols * var ed-blk
+cols var yank-buf
 1 var isShow
-: cx ( -- x ) cursor-x @ ;  : cx! cursor-x ! ;
-: cy ( -- y ) cursor-y @ ;  : cy! cursor-y ! ;
-: ed-pos ( --pos ) cy cols * cx + ed-blk + ;
-: ed-norm ( -- ) ed-blk >t 1024 for t@ c@ if0 32 t@ c! then t++ next ;
+: ed-xya ( x y--addr ) cols * + ed-blk + ;
+: ed-pos ( --pos ) cx cy ed-xya ;
+: ed-norm ( -- ) ed-blk +L1 1024 for c@x if0 32 c!x then x++ next -L ;
+: ed-rd ( -- ) ed-blk block @ blk-rd ed-norm ;
+: ed-sv ( -- ) ed-blk block @ blk-wt ;
 : ?ed-show ( -- ) isShow c@ if0 exit then
     cx cy ed-blk +L3  0 0 ->xy  0 isShow c!
     rows for
@@ -247,54 +251,64 @@ cell var block
 : ed-.ftr  ( addr cy cx-- ) block @ .f" Block %d (%d,%d) %s   " ;
 : ed-ftr   ( addr-- ) cy cx ed->ftr  ed-.ftr  t> t> ->xy ;
 : ed-clr   ( -- ) z"         " ed-ftr ;
-: ed-x! ( -- )  cx 0 max cols 1- min cx! ;
-: ed-y! ( -- )  cy 0 max rows 1- min cy! ;
+: ed-x!  ( -- ) cx 0 max cols 1- min cx! ;
+: ed-y!  ( -- ) cy 0 max rows 1- min cy! ;
 : ed->xy ( -- ) ed-x!  ed-y!  cx cy ->xy ;
 : ed-mv ( dx dy -- ) cursor-y +!  cursor-x +! ed->xy ;
-: ed-rd ( -- ) ed-blk block @ blk-rd ed-norm ;
-: ed-sv ( -- ) ed-blk block @ blk-wt ;
-: ed-rep-one ( -- ) z" -r-" ed-ftr key x! ed-clr
+: clr-line ( y-- ) 0 swap ed-xya x! cols for 32 c!x+ next ed-show! ;
+: yank ( -- ) 0 cy ed-xya x! yank-buf y! cols for c@x+ c!y+ next ;
+: put  ( -- ) 0 cy ed-xya x! yank-buf y! cols for c@y+ c!x+ next ;
+: open-line ( -- ) cy rows 1- <
+    if 0 cy ed-xya dup cols + over 0 rows 1- ed-xya swap - cmove then
+    cy clr-line ed-show! ;
+: repl-1 ( -- ) z" -r-" ed-ftr key x! ed-clr
       x@ ascii? if x@ ed-pos c! x@ emit ed-x! then ;
-: ed-rep ( -- ) z" -replace-" ed-ftr begin
+: ed-cr ( -- ) cy rows 1- < if cr then ;
+: repl-X ( -- ) z" -replace-" ed-ftr begin
       key x! 
       x@ 27 = if ed-clr exit then ( ESC => exit )
-      x@ 10 = if cy 1+ cy! 0 cx! ed->xy then
+      x@ 10 = if ed-cr then
       x@  8 = if x@ emit then
       x@ ascii? if x@ ed-pos c! x@ emit ed-x! then
     again ;
-: ed-ins-eob ( -- ) ed-pos ed-blk 1023 + +L2 y@- z!
+: ins-eob ( -- ) ed-pos ed-blk 1023 + +L2 y@- z!
     begin c@y- c!z- y@ x@ < until
     32 c!z -L ed-show! ;
-: ed-ins-eol ( -- ) +L ed-pos x!
+: ins-eol ( -- ) +L ed-pos x!
     cy 1+ cols * ed-blk + 1- y! y@- z!
     begin c@y- c!z- y@ x@ < until
     32 c!x -L ed-show! ;
-: ed-del-eob ( -- ) +L ed-pos x! ed-blk 1023 + y!
+: del-eob ( -- ) +L ed-pos x! ed-blk 1023 + y!
     begin x@ 1+ c@ c!x+ x@ y@ < while
     32 c!x -L ed-show! ;
-: ed-del-eol ( -- ) +L ed-pos x! cy 1+ cols * ed-blk + 1- y!
+: del-eol ( -- ) +L ed-pos x! cy 1+ cols * ed-blk + 1- y!
     begin x@ 1+ c@ c!x+ x@ y@ < while
     32 c!x -L ed-show! ;
+: del-line ( -- ) yank cy clr-line ;
 : ed-go ( -- )
     x@ 'h' = if -1  0 ed-mv exit then
     x@ 'j' = if  0  1 ed-mv exit then
     x@ 'k' = if  0 -1 ed-mv exit then
     x@ 'l' = if  1  0 ed-mv exit then
     x@  32 = if  1  0 ed-mv exit then
-    x@ 'I' = if ed-ins-eob exit then
-    x@ 'i' = if ed-ins-eol exit then
-    x@ 'r' = if ed-rep-one exit then
-    x@ 'R' = if ed-rep     exit then
-    x@ 'x' = if ed-del-eol exit then
-    x@ 'X' = if ed-del-eob exit then
-    x@  10 = if cy rows 1- < if cr then exit then
+    x@ 'I' = if ins-eob  exit then
+    x@ 'i' = if ins-eol  exit then
+    x@ 'r' = if repl-1  exit then
+    x@ 'R' = if repl-X      exit then
+    x@ 'x' = if del-eol  exit then
+    x@ 'X' = if del-eob  exit then
+    x@ 'D' = if del-line exit then
+    x@ 'Y' = if yank exit then
+    x@ 'O' = if open-line exit then
+    x@ 'P' = if put ed-show! exit then
+    x@  10 = if ed-cr exit then
     x@  19 = if ed-sv z" -saved-" ed-ftr 500 ms ed-clr exit then
 	x@ '+' = if ed-sv block @ 1+ 1023 min block ! ed-rd ed-show! exit then
 	x@ '-' = if ed-sv block @ 1-    0 max block ! ed-rd ed-show! exit then
     x@ <# #s #> ed-ftr ;
-: edit ( n-- ) block ! cls  ed-rd  1 isShow c!
+: edit ( n-- ) +L block ! cls  ed-rd  1 isShow c!
     begin ?ed-show z" " ed-ftr  key x! 
-      x@ 17 = if 0 rows 1+ ->xy exit then ( ctrl-q => exit )
+      x@ 17 = if 0 rows 1+ ->xy -L exit then ( ctrl-q => exit )
       ed-go
     again ;
 : ed block @ edit ;
@@ -305,4 +319,3 @@ marker .si .f" \n\nHello."
 
 ( test / temp )
 : bm ( mb -- ) 1000 dup * * timer swap for next timer swap - . ;
-
