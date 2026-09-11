@@ -120,7 +120,6 @@ static inline void lidt(void *idt_ptr) {
     asm volatile("lidt (%0)" : : "r"(idt_ptr));
 }
 
-
 /* GDT Entry */
 struct gdt_entry {
     uint16_t limit_low;

@@ -204,7 +204,7 @@ cell var t4   cell var t5   cell var t6
 ( Strings / Memory )
 : pad    ( --a ) vhere $100 + ;
 : fill   ( a num ch-- ) -rot for 2dup c! 1+ next 2drop ;
-: wfill  ( a num w-- )  -rot for 2dup w! 2+ next 2drop ;
+: fill-w ( a num w-- )  -rot for 2dup w! 2+ next 2drop ;
 : s-end  ( str--end ) dup s-len + ;   ( end: address of the null )
 : s-cpy  ( dst src--dst ) 2dup s-len 1+ cmove ;
 : s-cat  ( dst src--dst ) over s-end  over s-len 1+  cmove ;
@@ -226,7 +226,7 @@ cell var t4   cell var t5   cell var t6
 
 ( Screen )
 : vga ( --a ) $B8000 ;
-: cls ( -- ) vga 2000 $0F20 wfill  0 0 ->xy ;
+: cls ( -- ) vga 2000 $0F20 fill-w  0 0 ->xy ;
 : cx ( -- x ) cursor-x @ ;  : cx! cursor-x ! ;
 : cy ( -- y ) cursor-y @ ;  : cy! cursor-y ! ;
 
@@ -247,23 +247,23 @@ cols var yank-buf
     rows for z@ cols type cr z@ cols + z! next
     x@ y@ ->xy  -L ;
 : ?ed-show ( -- ) isShow c@ if ed-show! then 0 isShow c! ;
-: ed->ftr  ( -- ) cy >t cx >t  0 rows ->xy ;
-: .ftr  ( addr cy cx-- ) swap block @ .f" Block %d (%d,%d) %s   " ;
-: ed-ftr   ( addr-- ) cy cx ed->ftr  .ftr  t> t> ->xy ;
+: ed->ftr  ( -- t:x/y; ) cy >t cx >t  0 rows ->xy ;
+: .ftr  ( addr x y-- ) block @ .f" Block %d (%d,%d) %s   " ;
+: ed-ftr   ( addr-- ) cx cy ed->ftr  .ftr  t> t> ->xy ;
 : ed-clr   ( -- ) z"         " ed-ftr ;
 : ed-x!  ( -- ) cx 0 max last-col min cx! ;
 : ed-y!  ( -- ) cy 0 max last-row min cy! ;
 : ed->xy ( -- ) ed-x!  ed-y!  cx cy ->xy ;
 : ed-mv ( dx dy -- ) cursor-y +!  cursor-x +! ed->xy ;
-: clr-line ( y-- ) 0 swap ed-xya x! cols for 32 c!x+ next ed-show! ;
-: yank ( -- ) 0 cy ed-xya x! yank-buf y! cols for c@x+ c!y+ next ;
-: put  ( -- ) 0 cy ed-xya x! yank-buf y! cols for c@y+ c!x+ next ;
+: clr-line ( y-- ) 0 swap ed-xya cols 32 fill ed-show! ;
+: yank ( -- ) 0 cy ed-xya yank-buf cols cmove ;
+: put  ( -- ) yank-buf 0 cy ed-xya cols cmove ;
 : open-line ( -- ) cy last-row < if
       0 cy ed-xya  dup cols +  over 0 last-row ed-xya swap - cmove
     then cy clr-line ;
+: ed-cr ( -- ) cy last-row < if cr then ;
 : repl-1 ( -- ) z" -r-" ed-ftr key x! ed-clr
       x@ ascii? if x@ ed-pos c! x@ emit ed-x! then ;
-: ed-cr ( -- ) cy last-row < if cr then ;
 : repl-X ( -- ) z" -replace-" ed-ftr begin
       key x! 
       x@ 27 = if ed-clr exit then ( ESC => exit )
@@ -275,13 +275,13 @@ cols var yank-buf
     begin c@y- c!z- y@ x@ < until
     32 c!z -L ed-show! ;
 : ins-eol ( -- ) +L ed-pos x!
-    cy 1+ cols * ed-blk + 1- y! y@- z!
+    last-col cy ed-xya y! y@- z!
     begin c@y- c!z- y@ x@ < until
     32 c!x -L ed-show! ;
 : del-eob ( -- ) +L ed-pos x! ed-blk 1023 + y!
     begin x@ 1+ c@ c!x+ x@ y@ < while
     -L ed-show! ;
-: del-eol ( -- ) +L ed-pos x! cy 1+ cols * ed-blk + 1- y!
+: del-eol ( -- ) +L ed-pos x!  last-col cy ed-xya y!
     begin x@ 1+ c@ c!x+ x@ y@ < while
     -L ed-show! ;
 : del-line ( -- ) yank cy last-row < if
