@@ -20,7 +20,7 @@ A minimal bare-metal x86 kernel written in pure C and booted under QEMU. It incl
 ```text
 block-01.fth  - Translates boot.f -> boot.h using fwc
 BMF-boot.md   - Reference for the words in boot.fth
-BMF-Forth.md  - Reference for the primitived in the DWC VM
+BMF-Forth.md  - Reference for the primitives in the DWC VM
 boot.fth      - Forth source code for the OS
 boot.h        - Auto-generated C header file of 'boot.fth'
 dwc-vm.c      - Forth-style VM implementation
