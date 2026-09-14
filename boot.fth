@@ -62,6 +62,8 @@ vars (vh) !
 : 1- 1 - ; inline
 
 ( variables x,y,z are built-in )
+: y@+ ( --n ) y@ dup 1+ y! ;
+: z@+ ( --n ) z@ dup 1+ z! ;
 : +L1 ( x -- )    +L x! ;
 : +L2 ( x y-- )   +L y! x! ;
 : +L3 ( x y z-- ) +L z! y! x! ;
@@ -70,11 +72,11 @@ vars (vh) !
 : c@x ( --b ) x@ c@ ;     : c@x+ ( --b ) x@+ c@ ;    : c@x- ( --b ) x@- c@ ;
 : c!x ( b-- ) x@ c! ;     : c!x+ ( b-- ) x@+ c! ;    : c!x- ( b-- ) x@- c! ;
 
-: y++ ( -- )  y@+ drop ;  : y--  ( -- )  y@ 1- y! ;  : y@-  ( --n ) y@ y-- ;
+: y++ ( -- )  y@ 1+ y! ;  : y--  ( -- )  y@ 1- y! ;  : y@-  ( --n ) y@ y-- ;
 : c@y ( --b ) y@ c@ ;     : c@y+ ( --b ) y@+ c@ ;    : c@y- ( --b ) y@- c@ ;
 : c!y ( b-- ) y@ c! ;     : c!y+ ( b-- ) y@+ c! ;    : c!y- ( b-- ) y@- c! ;
 
-: z++ ( -- )  z@+ drop ;  : z--  ( -- )  z@ 1- z! ;  : z@-  ( --n ) z@ z-- ;
+: z++ ( -- )  z@ 1+ z! ;  : z--  ( -- )  z@ 1- z! ;  : z@-  ( --n ) z@ z-- ;
 : c@z ( --b ) z@ c@ ;     : c@z+ ( --b ) z@+ c@ ;    : c@z- ( --b ) z@- c@ ;
 : c!z ( b-- ) z@ c! ;     : c!z+ ( b-- ) z@+ c! ;    : c!z- ( b-- ) z@- c! ;
 
@@ -88,6 +90,16 @@ val tsp   (val) (tsp)
 : t>    ( --n ) t@ tsp 1- 31 and (tsp) ! ;
 : tdrop ( -- )  t> drop ; inline
 : t++   ( -- )  t@ 1+ t! ; inline
+
+val a@   (val) (a)
+: a! (a) ! ;
+: a++   ( -- )   a@ 1+ a! ;
+: a@+   ( --n )  a@ dup 1+ a! ;
+: c@a   ( --b )  a@ c@ ;
+: c@a+  ( --b )  a@+ c@ ;
+: >a    ( n-- )  a@ >t a! ;
+: a>    ( --n )  a@ t> a! ;
+: adrop ( -- )   a> drop ; inline
 
 ( Strings )
 : comp? ( --n ) state @ 1 = ;
@@ -125,7 +137,7 @@ val tsp   (val) (tsp)
 : >= ( a b--f ) < 0= ; inline
 : <> ( a b--f ) = 0= ; inline
 : type ( a n-- ) for dup c@ emit 1+ next drop ;
-: btwi ( n l h--f ) >t over <= swap t> <= and ;
+: btwi ( n l h--f ) >r over <= swap r> <= and ;
 : key? ( --f )  (kbd-i) @ (kbd-o) @ <> ;
 : ascii? ( c--f )  32 127 btwi ;
 : com    ( n--n' ) -1 xor ;

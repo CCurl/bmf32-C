@@ -38,8 +38,6 @@
 	X(YFET,   "y@",       push(xstk[xsp+1]); ) \
 	X(ZFET,   "z@",       push(xstk[xsp+2]); ) \
 	X(XFETI,  "x@+",      push(xstk[xsp]++); ) \
-	X(YFETI,  "y@+",      push(xstk[xsp+1]++); ) \
-	X(ZFETI,  "z@+",      push(xstk[xsp+2]++); ) \
 	X(MULT,   "*",        t = pop(); TOS *= t; ) \
 	X(ADD,    "+",        t = pop(); TOS += t; ) \
 	X(SUB,    "-",        t = pop(); TOS -= t; ) \
@@ -68,6 +66,8 @@
 	X(SEQI,   "s-eqi",    t = pop(); TOS = (strEqI((char*)TOS, (char*)t)) ? -1 : 0; ) \
 	X(NWB,    ".nwb",     t=pop(); n=pop(); iToA(pop(), t, n); ) \
 	X(SEE,    "see",      doSee(); ) \
+	X(INB,    "inb",      TOS = inb((short)TOS); ) \
+	X(OUTB,   "outb",     t = pop(); n = pop(); outb((short)t, (char)n); ) \
 	X(DISKRD, "disk-rd",  t = pop(); n = pop(); ata_read_block(t, (void*)n); ) \
 	X(DISKWT, "disk-wt",  t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
 	X(TOXY,   "->xy",     t = pop(); n = pop(); vga_set_xy(n, t); ) \

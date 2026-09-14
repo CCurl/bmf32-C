@@ -61,20 +61,23 @@ vars (vh) ! \
 : variable   ( -- ) cell const allot ; \
 : 1- 1 - ; inline \
  \
+: y@+ ( --n ) y@ dup 1+ y! ; \
+: z@+ ( --n ) z@ dup 1+ z! ; \
+ \
 ( variables x,y,z are built-in ) \
 : +L1 ( x -- )    +L x! ; \
 : +L2 ( x y-- )   +L y! x! ; \
 : +L3 ( x y z-- ) +L z! y! x! ; \
  \
-: x++ ( -- )  x@+ drop ;  : x--  ( -- )  x@ 1- x! ;  : x@-  ( --n ) x@ x-- ; \
+: x++ ( -- )  x@ 1+ x! ;  : x--  ( -- )  x@ 1- x! ;  : x@-  ( --n ) x@ x-- ; \
 : c@x ( --b ) x@ c@ ;     : c@x+ ( --b ) x@+ c@ ;    : c@x- ( --b ) x@- c@ ; \
 : c!x ( b-- ) x@ c! ;     : c!x+ ( b-- ) x@+ c! ;    : c!x- ( b-- ) x@- c! ; \
  \
-: y++ ( -- )  y@+ drop ;  : y--  ( -- )  y@ 1- y! ;  : y@-  ( --n ) y@ y-- ; \
+: y++ ( -- )  y@ 1+ y! ;  : y--  ( -- )  y@ 1- y! ;  : y@-  ( --n ) y@ y-- ; \
 : c@y ( --b ) y@ c@ ;     : c@y+ ( --b ) y@+ c@ ;    : c@y- ( --b ) y@- c@ ; \
 : c!y ( b-- ) y@ c! ;     : c!y+ ( b-- ) y@+ c! ;    : c!y- ( b-- ) y@- c! ; \
  \
-: z++ ( -- )  z@+ drop ;  : z--  ( -- )  z@ 1- z! ;  : z@-  ( --n ) z@ z-- ; \
+: z++ ( -- )  z@ 1+ z! ;  : z--  ( -- )  z@ 1- z! ;  : z@-  ( --n ) z@ z-- ; \
 : c@z ( --b ) z@ c@ ;     : c@z+ ( --b ) z@+ c@ ;    : c@z- ( --b ) z@- c@ ; \
 : c!z ( b-- ) z@ c! ;     : c!z+ ( b-- ) z@+ c! ;    : c!z- ( b-- ) z@- c! ; \
  \
@@ -88,6 +91,14 @@ val tsp   (val) (tsp) \
 : t>    ( --n ) t@ tsp 1- 31 and (tsp) ! ; \
 : tdrop ( -- )  t> drop ; inline \
 : t++   ( -- )  t@ 1+ t! ; inline \
+ \
+val a@   (val) (a) \
+: a! (a) ! ; \
+: a@+   ( --n ) a@ dup 1+ a! ; \
+: a++   ( -- )  a@ 1+ a! ; \
+: >a    ( n-- )  a@ >t a! ; \
+: a>    ( --n )  a@ t> a! ; \
+: adrop ( -- )   a> drop ; inline \
  \
 ( Strings ) \
 : comp? ( --n ) state @ 1 = ; \
@@ -125,7 +136,7 @@ val tsp   (val) (tsp) \
 : >= ( a b--f ) < 0= ; inline \
 : <> ( a b--f ) = 0= ; inline \
 : type ( a n-- ) for dup c@ emit 1+ next drop ; \
-: btwi ( n l h--f ) >t over <= swap t> <= and ; \
+: btwi ( n l h--f ) >r over <= swap r> <= and ; \
 : key? ( --f )  (kbd-i) @ (kbd-o) @ <> ; \
 : ascii? ( c--f )  32 127 btwi ; \
 : com    ( n--n' ) -1 xor ; \
@@ -143,6 +154,7 @@ val tsp   (val) (tsp) \
 : decimal  ( -- )  #10 base ! ; \
 : hex      ( -- )  $10 base ! ; \
 : binary   ( -- )  %10 base ! ; \
+: i lstk (lsp) @ cells + @ ; \
  \
    1 var (neg) \
   65 var buf \
@@ -229,6 +241,35 @@ cell var t4   cell var t5   cell var t6 \
 : cls ( -- ) vga 2000 $0F20 fill-w  0 0 ->xy ; \
 : cx ( -- x ) cursor-x @ ;  : cx! cursor-x ! ; \
 : cy ( -- y ) cursor-y @ ;  : cy! cursor-y ! ; \
+ \
+( VGA graphics mode $12 - 640x480x16 ) \
+: set-color ( r g b-- )  \
+   x@+   $03C8 outb ( Index ) \
+   >r >r $03C9 outb ( Red   ) \
+   r>    $03C9 outb ( Green ) \
+   r>    $03C9 outb ( Blue  ) ; \
+ \
+( a standard 16-color palette ) \
+: setup-colors 0 x! \
+    ( Red   Green  Blue ) \
+    ( ----  ------ ---- ) \
+    0     0      0    set-color   ( black ) \
+    0     0      170  set-color   ( blue ) \
+    0     170    0    set-color   ( green ) \
+    0     170    170  set-color   ( cyan ) \
+    170   0      0    set-color   ( red ) \
+    170   0      170  set-color   ( magenta ) \
+    170   85     0    set-color   ( brown ) \
+    170   170    170  set-color   ( light gray ) \
+    85    85     85   set-color   ( dark gray ) \
+    85    85     255  set-color   ( light blue ) \
+    85    255    85   set-color   ( light green ) \
+    85    255    255  set-color   ( light cyan ) \
+    255   85     85   set-color   ( light red ) \
+    255   85     255  set-color   ( light magenta ) \
+    255   255    85   set-color   ( yellow ) \
+    255   255    255  set-color   ( white ) \
+  ; \
  \
 cell var block \
  \

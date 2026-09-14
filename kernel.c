@@ -77,24 +77,24 @@ int ctrl_pressed = 0;
 volatile uint32_t sys_ticks = 0;
 
 /* Helper function to write a byte to port */
-static inline void outb(uint16_t port, uint8_t val) {
+void outb(uint16_t port, uint8_t val) {
     asm volatile("outb %0, %1" : : "a"(val), "Nd"(port));
 }
 
 /* Helper function to read a byte from port */
-static inline uint8_t inb(uint16_t port) {
+uint8_t inb(uint16_t port) {
     uint8_t ret;
     asm volatile("inb %1, %0" : "=a"(ret) : "Nd"(port));
     return ret;
 }
 
 /* Helper function to write a word to port */
-static inline void outw(uint16_t port, uint16_t val) {
+void outw(uint16_t port, uint16_t val) {
     asm volatile("outw %0, %1" : : "a"(val), "Nd"(port));
 }
 
 /* Helper function to read a word from port */
-static inline uint16_t inw(uint16_t port) {
+uint16_t inw(uint16_t port) {
     uint16_t ret;
     asm volatile("inw %1, %0" : "=a"(ret) : "Nd"(port));
     return ret;
@@ -485,7 +485,7 @@ int ata_read_block(uint32_t LBA, void *buf) {
     if (ata_wait_drq() != 0) { return -1; }
 
     uint16_t *dst = (uint16_t *)buf;
-    for (int i = 0; i < ATA_SECTOR_SIZE / 2; i++) {
+    for (int i = 0; i < (ATA_SECTOR_SIZE / 2); i++) {
         dst[i] = inw(ATA_PRIMARY_IO_BASE);
     }
 
@@ -507,7 +507,7 @@ int ata_write_block(uint32_t LBA, const void *buf) {
     if (ata_wait_drq() != 0) { return -1; }
 
     const uint16_t *src = (const uint16_t *)buf;
-    for (int i = 0; i < ATA_SECTOR_SIZE / 2; i++) {
+    for (int i = 0; i < (ATA_SECTOR_SIZE / 2); i++) {
         outw(ATA_PRIMARY_IO_BASE, src[i]);
     }
 

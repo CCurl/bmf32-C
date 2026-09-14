@@ -31,6 +31,12 @@ extern int cursor_y;
 extern int text_color;
 extern int setCur;
 
+uint8_t inb(uint16_t port);
+void outb(uint16_t port, uint8_t val);
+
+uint16_t inw(uint16_t port);
+void outw(uint16_t port, uint16_t val);
+
 /* Serial API */
 void serial_init(void);
 void serial_emit(char c);
