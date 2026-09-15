@@ -329,7 +329,7 @@ cols var yank-buf \
 : ed ( -- ) block @ edit ; \
  \
 : .version ( -- ) version <# # # #. # # #. # # #s #> ztype ; \
-: .si .\" bmf32-C v\" .version .f\" \\n\\nhttps://github.com/CCurl/bmf32-C\" ; \
+: .si .\" bmf32-C v\" .version .f\"  - https://github.com/CCurl/bmf32-C\" ; \
 marker .si .f\" \\n\\nHello.\" \
  \
 ( test / temp ) \
