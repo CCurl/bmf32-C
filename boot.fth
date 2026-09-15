@@ -41,12 +41,11 @@
 : kb ( n--m ) 1024 * ;
 : mb ( n--m ) kb kb ;
 
-( Disk blocks are 512 bytes )
-( Forth blocks are 1024 bytes )
+( Disk blocks are 512 bytes, Forth blocks are 1024 bytes )
 : blk-rd ( addr blk#-- ) dup + over over disk-rd 1+ >r 512 + r> disk-rd ;
 : blk-wt ( addr blk#-- ) dup + over over disk-wt 1+ >r 512 + r> disk-wt ;
 
-14 mb mem + const ram-disk
+mem mem-sz + 2 mb - const ram-disk
 : load ( n-- ) +L x! x@ kb ram-disk + y!
     y@ x@ blk-rd  0 y@ 1023 + c!
     y@ -L outer ;
@@ -61,7 +60,7 @@ vars (vh) !
 : variable   ( -- ) cell const allot ;
 : 1- 1 - ; inline
 
-( variables x,y,z are built-in )
+( variables x,y,z are built-in, only x has x@+ )
 : y@+ ( --n ) y@ dup 1+ y! ;
 : z@+ ( --n ) z@ dup 1+ z! ;
 : +L1 ( x -- )    +L x! ;
@@ -102,21 +101,21 @@ val a@   (val) (a)
 : adrop ( -- )   a> drop ; inline
 
 ( Strings )
-: comp? ( --n ) state @ 1 = ;
+: compiling? ( --n ) state @ 1 = ;
 : (") ( --a ) +L vhere dup z! x! 1 >in +!
     begin
         >in @ c@ y! 1 >in +!
         y@ 0 = y@ '"' = or
         if  0 c!x+  z@
-            comp? if (lit) , , x@ (vh) ! then
+            compiling? if (lit) , , x@ (vh) ! then
             -L exit
         then
         y@ c!x+
     again ;
 
 : z" ( str--addr ) (") ; immediate
-: ." ( str-- ) (") comp? if (ztype) , exit then ztype ; immediate
-: .f" ( str-- ) (") comp? if (ftype) , exit then ftype ; immediate
+: ." ( str-- ) (") compiling? if (ztype) , exit then ztype ; immediate
+: .f" ( str-- ) (") compiling? if (ftype) , exit then ftype ; immediate
 
 ( More core words )
 : [ ( -- ) 0 state ! ; immediate  ( 0 = INTERPRET )
@@ -300,6 +299,7 @@ cols var yank-buf
       0 cy ed-xya >r  r@ cols +  r@  0 rows ed-xya r> - cmove
     then last-row clr-line ;
 : ed-go ( -- )
+    x@   8 = if 'h' x! then
     x@  32 = if 'l' x! then
     x@ 'h' = if -1  0 ed-mv exit then
     x@ 'j' = if  0  1 ed-mv exit then
@@ -326,7 +326,7 @@ cols var yank-buf
       x@ 17 = if 0 rows 1+ ->xy -L exit then ( ctrl-q => exit )
       ed-go
     again ;
-: ed block @ edit ;
+: ed ( -- ) block @ edit ;
 
 : .version ( -- ) version <# # # #. # # #. # # #s #> ztype ;
 : .si ." bmf32-C v" .version .f" \n\nhttps://github.com/CCurl/bmf32-C" ;
