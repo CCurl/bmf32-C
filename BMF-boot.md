@@ -76,7 +76,7 @@ This is a reference for the words defined in `boot.f`.
 | `c!z` | `b --` | Write a byte to the address in `z`. |
 | `c!z+` | `b --` | Write a byte to `z` and increment `z`. |
 | `c!z-` | `b --` | Write a byte to `z` and decrement `z`. |
-| `compiling?` | `-- n` | Return true if the system is in compile state. |
+| `comp?` | `-- n` | Return true if the system is in compile state. |
 | `("` | `-- a` | Build a counted string literal in the variable area. |
 | `z"` | immediate | Parse a NUL-terminated string literal and create a compile-time string literal. |
 | `."` | immediate | Compile a NUL-terminated string literal for `ztype`; otherwise emit the string immediately. |

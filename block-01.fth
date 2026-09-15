@@ -2,7 +2,7 @@
 cell var in cell var out
 64 kb var src
 
-: open-in  z" boot.f" fopen-r dup in  ! ;
+: open-in  z" boot.fth" fopen-r dup in  ! ;
 : open-out z" boot.h" fopen-w dup out ! ;
 : open-files open-in open-out ;
 : close-in  in  @ fclose ;
