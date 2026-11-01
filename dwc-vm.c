@@ -72,12 +72,12 @@
 	X(DISKWT, "disk-wt",  t = pop(); n = pop(); ata_write_block(t, (const void*)n); ) \
 	X(TOXY,   "->xy",     t = pop(); n = pop(); vga_set_xy(n, t); ) \
 
-enum { PRIMS(X1) LASTOP };
+enum { PRIMS(X1) HERE_START };
 
 char mem[MEM_SZ], *toIn, wd[32];
 ucell *code=(ucell*)&mem[0], dsp, rsp, lsp, xsp;
 cell dstk[STK_SZ+1], rstk[STK_SZ+1], lstk[STK_SZ+1], xstk[STK_SZ+1];
-cell here=LASTOP, base=10, state=INTERPRET;
+cell here=HERE_START, base=10, state=INTERPRET;
 DE_T tmpWords[10], *last=(DE_T*)&mem[MEM_SZ];
 
 void push(cell v) { if (dsp < STK_SZ) { dstk[++dsp] = v; } }
@@ -177,7 +177,7 @@ const char *nameByXT(cell xt) {
 void doSee() {
 	DE_T *dp = findInDict(0);
 	if (!dp) { zType("-nf-"); return; }
-	if (dp->xt <= LASTOP) { zTypeStrNum("primitive: ", dp->xt, 10, 0); return; }
+	if (dp->xt < HERE_START) { zTypeStrNum("primitive: ", dp->xt, 10, 0); return; }
 	cell x = (cell)dp;
 	cell i = dp->xt, stop = (last < dp) ? (cell)(dp-1)->xt : here;
 	zTypeStrNum("\r\n", x, 10, 0); zType(": ");
