@@ -1,4 +1,4 @@
-( NOTE: 'boot.f' is used to generate 'boot.h' )
+( NOTE: 'boot.fth' is used to generate 'boot.h' )
 : last (l) @ ;
 : here (h) @ ;
 : inline    ( -- ) $40 last cell + c! ;
@@ -91,13 +91,14 @@ val tsp   (val) (tsp)
 : t++   ( -- )  t@ 1+ t! ; inline
 
 val a@   (val) (a)
-: a! (a) ! ;
+: a!    ( n-- )  (a) ! ;
 : a++   ( -- )   a@ 1+ a! ;
 : a@+   ( --n )  a@ dup 1+ a! ;
 : c@a   ( --b )  a@ c@ ;
 : c@a+  ( --b )  a@+ c@ ;
 : >a    ( n-- )  a@ >t a! ;
-: a>    ( --n )  a@ t> a! ;
+: <a    ( -- )   t> a! ;
+: a>    ( --n )  a@ <a ;
 : adrop ( -- )   a> drop ; inline
 
 ( Strings )
